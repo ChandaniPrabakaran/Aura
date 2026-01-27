@@ -17,10 +17,11 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
     }
 
     // 2. Prepare System Prompt with Personality + Memory + Dashboard Context
+    const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const messages: any[] = [
         {
             role: 'system',
-            content: `${AURA_PERSONALITY}\n${memoryContext}${dashboardContext}`
+            content: `${AURA_PERSONALITY}\n[CURRENT DATE: ${currentDate}]\n${memoryContext}${dashboardContext}`
         },
         ...chatHistory,
         { role: 'user', content: userMessage }
@@ -35,7 +36,7 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
                 type: 'function',
                 function: {
                     name: 'createTodo',
-                    description: 'Create a new task or todo',
+                    description: 'Create a new task, todo, or executive command (triggered by "Execute command:")',
                     parameters: {
                         type: 'object',
                         properties: {
@@ -52,7 +53,7 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
                 type: 'function',
                 function: {
                     name: 'saveIdea',
-                    description: 'Save a new idea, thought, or brainstorm',
+                    description: 'Save a new idea, thought, or brainstorm (also known as crystallizing a memory or saving to the vault)',
                     parameters: {
                         type: 'object',
                         properties: {
@@ -74,9 +75,14 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
                         properties: {
                             title: { type: 'string' },
                             description: { type: 'string' },
-                            targetDate: { type: 'string', description: 'ISO format target date' }
+                            targetDate: { type: 'string', description: 'ISO format target date' },
+                            type: {
+                                type: 'string',
+                                enum: ['daily', 'weekly', 'monthly', 'long_term'],
+                                description: 'The frequency or duration of the goal. Choose the most appropriate: daily, weekly, monthly, long_term.'
+                            }
                         },
-                        required: ['title']
+                        required: ['title', 'type']
                     }
                 }
             },
@@ -92,6 +98,30 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
                             progress: { type: 'number', description: '0 to 100' }
                         },
                         required: ['goalId', 'progress']
+                    }
+                }
+            },
+            {
+                type: 'function',
+                function: {
+                    name: 'updateGoal',
+                    description: 'Update any attribute of an existing goal (title, description, date, type)',
+                    parameters: {
+                        type: 'object',
+                        properties: {
+                            goalId: { type: 'string' },
+                            updates: {
+                                type: 'object',
+                                properties: {
+                                    title: { type: 'string' },
+                                    description: { type: 'string' },
+                                    targetDate: { type: 'string' },
+                                    type: { type: 'string', enum: ['daily', 'weekly', 'monthly', 'long_term'] },
+                                    progress: { type: 'number' }
+                                }
+                            }
+                        },
+                        required: ['goalId', 'updates']
                     }
                 }
             },
@@ -137,6 +167,9 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
         const toolCalls = responseMessage.tool_calls;
         messages.push(responseMessage);
 
+        // Initialize messages with tool calls if not already present (standard OpenAI flow)
+        // messages.push(responseMessage); // Already pushed above
+
         for (const toolCall of toolCalls) {
             if (toolCall.type !== 'function') continue;
 
@@ -154,10 +187,13 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
                         result = await auraTools.saveIdea(userId, functionArgs.title, functionArgs.content, functionArgs.tags);
                         break;
                     case 'createGoal':
-                        result = await auraTools.createGoal(userId, functionArgs.title, functionArgs.description, functionArgs.targetDate);
+                        result = await auraTools.createGoal(userId, functionArgs.title, functionArgs.description, functionArgs.targetDate, functionArgs.type);
                         break;
                     case 'updateGoalProgress':
                         result = await auraTools.updateGoalProgress(userId, functionArgs.goalId, functionArgs.progress);
+                        break;
+                    case 'updateGoal':
+                        result = await auraTools.updateGoal(userId, functionArgs.goalId, functionArgs.updates);
                         break;
                     case 'scheduleMeeting':
                         result = await auraTools.scheduleMeeting(userId, functionArgs.summary, functionArgs.start, functionArgs.end, functionArgs.description);
@@ -192,7 +228,7 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
         await saveMessageWithMemory(userId, 'user', userMessage);
         await saveMessageWithMemory(userId, 'assistant', finalReply);
 
-        return finalReply;
+        return { reply: finalReply, actionTaken: true };
     }
 
     const reply = responseMessage.content || "";
@@ -201,5 +237,5 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
     await saveMessageWithMemory(userId, 'user', userMessage);
     await saveMessageWithMemory(userId, 'assistant', reply);
 
-    return reply;
+    return { reply, actionTaken: false };
 }

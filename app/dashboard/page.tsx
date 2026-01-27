@@ -26,6 +26,19 @@ export default function DashboardHap() {
 
     useEffect(() => {
         fetchAllData();
+
+        // Enable Realtime Synchronization
+        const channel = supabase
+            .channel('dashboard-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, () => fetchAllData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' }, () => fetchAllData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'ideas' }, () => fetchAllData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => fetchAllData())
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     async function fetchAllData() {
@@ -34,7 +47,7 @@ export default function DashboardHap() {
 
         const [tasksResp, goalsResp, ideasResp, eventsResp] = await Promise.all([
             supabase.from('todos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
-            supabase.from('goals').select('*').eq('user_id', user.id).eq('status', 'active').limit(2),
+            supabase.from('goals').select('*').eq('user_id', user.id).eq('status', 'active').order('created_at', { ascending: false }).limit(2),
             supabase.from('ideas').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(2),
             supabase.from('calendar_events').select('*').eq('user_id', user.id).gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(3)
         ]);
@@ -94,7 +107,10 @@ export default function DashboardHap() {
 
                 {/* The Conversational Brain */}
                 <div className="flex-1 min-h-0 bg-transparent">
-                    <NeuralChat userData={{ tasks: recentTasks, goals: activeGoals, ideas: recentIdeas, events: upcomingEvents }} />
+                    <NeuralChat
+                        userData={{ tasks: recentTasks, goals: activeGoals, ideas: recentIdeas, events: upcomingEvents }}
+                        onRefresh={fetchAllData}
+                    />
                 </div>
             </main>
 

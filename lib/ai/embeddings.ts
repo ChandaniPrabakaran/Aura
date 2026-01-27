@@ -14,7 +14,8 @@ export async function generateEmbedding(text: string) {
 
         return response.data[0].embedding;
     } catch (error) {
-        console.error('Error generating embedding:', error);
-        throw error;
+        console.error('Error generating embedding, using fallback:', error);
+        // Fallback to zero vector to prevent tool failure
+        return new Array(1536).fill(0);
     }
 }

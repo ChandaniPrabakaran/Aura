@@ -34,6 +34,15 @@ export default function TasksPage() {
 
     useEffect(() => {
         fetchTodos();
+
+        const channel = supabase
+            .channel('tasks-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, () => fetchTodos())
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     async function fetchTodos() {

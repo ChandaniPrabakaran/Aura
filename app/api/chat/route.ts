@@ -21,13 +21,13 @@ export async function POST(request: Request) {
         }
 
         // 3. Process with AURA's brain
-        const reply = await chatWithAura(user.id, message, history || [], context);
+        const result = await chatWithAura(user.id, message, history || [], context);
 
         // 4. Store the interaction in history (with embeddings for memory)
         // In a production app, we'd do this via a background task or right here
         // For now, let's keep it simple and return the reply
 
-        return NextResponse.json({ reply });
+        return NextResponse.json(result);
     } catch (error: any) {
         console.error('Chat API Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

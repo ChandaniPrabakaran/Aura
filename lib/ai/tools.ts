@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { adminClient } from '@/lib/supabase/admin';
 import { createEvent, listEvents } from '@/lib/calendar/google-calendar';
 import { generateEmbedding } from './embeddings';
 
@@ -10,18 +10,33 @@ import { generateEmbedding } from './embeddings';
 export const auraTools = {
     // --- TODO TOOLS ---
     async createTodo(userId: string, title: string, description?: string, dueDate?: string, priority = 'medium') {
-        const supabase = await createClient();
-        const { data, error } = await supabase
+        const supabase = adminClient;
+
+        let isoDate = null;
+        if (dueDate) {
+            try { isoDate = new Date(dueDate).toISOString(); } catch (e) { isoDate = null; }
+        }
+
+        const { error } = await supabase
             .from('todos')
-            .insert([{ user_id: userId, title, description, due_date: dueDate, priority }])
-            .select()
-            .single();
-        if (error) throw error;
-        return `Created todo: ${data.title}`;
+            .insert([{
+                user_id: userId,
+                title,
+                description,
+                due_date: isoDate,
+                priority,
+                status: 'pending'
+            }]);
+
+        if (error) {
+            console.error("Create Todo Error:", error);
+            throw new Error(`Failed to create command: ${error.message}`);
+        }
+        return `Successfully initialized command: ${title}`;
     },
 
     async listTodos(userId: string, status = 'pending') {
-        const supabase = await createClient();
+        const supabase = adminClient;
         const { data, error } = await supabase
             .from('todos')
             .select('*')
@@ -33,32 +48,65 @@ export const auraTools = {
     },
 
     // --- IDEA TOOLS ---
-    async saveIdea(userId: string, title: string, content: string, tags: string[] = []) {
-        const supabase = await createClient();
+    async saveIdea(userId: string, title: string, content: string, tags: any = []) {
+        const supabase = adminClient;
+
+        // Ensure tags is an array
+        const finalTags = Array.isArray(tags) ? tags : [tags].filter(Boolean);
+
         const embedding = await generateEmbedding(`${title} ${content}`);
-        const { data, error } = await supabase
+
+        const { error } = await supabase
             .from('ideas')
-            .insert([{ user_id: userId, title, content, tags, embedding }])
-            .select()
-            .single();
-        if (error) throw error;
-        return `Saved idea: ${data.title}`;
+            .insert([{
+                user_id: userId,
+                title,
+                content,
+                tags: finalTags,
+                embedding
+            }]);
+
+        if (error) {
+            console.error("Save Idea Error:", error);
+            throw new Error(`Failed to crystalline memory: ${error.message}`);
+        }
+        return `Neural signature for "${title}" has been crystallized in The Vault.`;
     },
 
     // --- GOAL TOOLS ---
-    async createGoal(userId: string, title: string, description?: string, targetDate?: string) {
-        const supabase = await createClient();
-        const { data, error } = await supabase
+    async createGoal(userId: string, title: string, description?: string, targetDate?: string, type: string = 'long_term') {
+        const supabase = adminClient;
+
+        let isoDate = null;
+        if (targetDate) {
+            try { isoDate = new Date(targetDate).toISOString(); } catch (e) { isoDate = null; }
+        }
+
+        // Validate type against database ENUM constraint
+        const allowedTypes = ['daily', 'weekly', 'monthly', 'long_term'];
+        const finalType = allowedTypes.includes(type) ? type : 'long_term';
+
+        const { error } = await supabase
             .from('goals')
-            .insert([{ user_id: userId, title, description, target_date: targetDate, status: 'active', progress: 0 }])
-            .select()
-            .single();
-        if (error) throw error;
-        return `New Goal set: "${data.title}". I'll keep an eye on your progress!`;
+            .insert([{
+                user_id: userId,
+                title,
+                description: description || "",
+                target_date: isoDate,
+                status: 'active',
+                progress: 0,
+                type: finalType
+            }]);
+
+        if (error) {
+            console.error("Create Goal Error:", error);
+            throw new Error(`Failed to establish trajectory: ${error.message}`);
+        }
+        return `New Objective set: "${title}" (${finalType}). Trajectory is now active.`;
     },
 
     async listGoals(userId: string) {
-        const supabase = await createClient();
+        const supabase = adminClient;
         const { data, error } = await supabase
             .from('goals')
             .select('*')
@@ -69,10 +117,10 @@ export const auraTools = {
     },
 
     async updateGoalProgress(userId: string, goalId: string, progress: number) {
-        const supabase = await createClient();
+        const supabase = adminClient;
         const { data, error } = await supabase
             .from('goals')
-            .update({ progress })
+            .update({ progress, updated_at: new Date().toISOString() })
             .eq('id', goalId)
             .eq('user_id', userId)
             .select()
@@ -81,9 +129,36 @@ export const auraTools = {
         return `Updated progress for "${data.title}" to ${progress}%!`;
     },
 
+    async updateGoal(userId: string, goalId: string, updates: { title?: string, description?: string, targetDate?: string, type?: string, progress?: number }) {
+        const supabase = adminClient;
+
+        const payload: any = { updated_at: new Date().toISOString() };
+        if (updates.title) payload.title = updates.title;
+        if (updates.description) payload.description = updates.description;
+        if (updates.progress !== undefined) payload.progress = updates.progress;
+        if (updates.targetDate) {
+            try { payload.target_date = new Date(updates.targetDate).toISOString(); } catch (e) { }
+        }
+        if (updates.type) {
+            const allowedTypes = ['daily', 'weekly', 'monthly', 'long_term'];
+            payload.type = allowedTypes.includes(updates.type) ? updates.type : 'long_term';
+        }
+
+        const { data, error } = await supabase
+            .from('goals')
+            .update(payload)
+            .eq('id', goalId)
+            .eq('user_id', userId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return `Successfully updated Objective: "${data.title}".`;
+    },
+
     // --- CALENDAR TOOLS (In-App Manifest) ---
     async scheduleMeeting(userId: string, summary: string, start: string, end: string, description?: string) {
-        const supabase = await createClient();
+        const supabase = adminClient;
 
         try {
             // Check for local conflicts
@@ -98,7 +173,7 @@ export const auraTools = {
                 return `Aura Alert: Your timeline already has a manifestation at ${new Date(conflicts[0].start_time).toLocaleTimeString()} ("${conflicts[0].title}"). Should I optimize and find a different slot or overwrite it?`;
             }
 
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('calendar_events')
                 .insert([{
                     user_id: userId,
@@ -106,19 +181,17 @@ export const auraTools = {
                     description,
                     start_time: start,
                     end_time: end,
-                }])
-                .select()
-                .single();
+                }]);
 
             if (error) throw error;
-            return `Aura Manifest: Scheduled "${data.title}" for ${new Date(start).toLocaleString()}. Your 2026 timeline is synchronized.`;
+            return `Aura Manifest: Scheduled "${summary}" for ${new Date(start).toLocaleString()}. Your 2026 timeline is synchronized.`;
         } catch (err: any) {
             return `Signal Logic Failure: ${err.message}`;
         }
     },
 
     async checkAvailability(userId: string, day: string) {
-        const supabase = await createClient();
+        const supabase = adminClient;
         try {
             const startOfDay = new Date(day);
             startOfDay.setHours(0, 0, 0, 0);

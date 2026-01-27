@@ -21,20 +21,36 @@ export default function GoalsPage() {
 
     useEffect(() => {
         fetchGoals();
+
+        const channel = supabase
+            .channel('goals-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' }, () => fetchGoals())
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     async function fetchGoals() {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+            if (!user) return;
 
-        const { data, error } = await supabase
-            .from('goals')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+            const { data, error } = await supabase
+                .from('goals')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
 
-        if (data) setGoals(data);
-        setIsLoading(false);
+            if (error) throw error;
+            if (data) setGoals(data);
+        } catch (err) {
+            console.error("Fetch Goals Error:", err);
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     const activeGoals = goals.filter(g => g.status === 'active');

@@ -234,6 +234,18 @@ export default function SettingsPage() {
                         <div className="text-center">
                             <span className="text-[10px] font-black uppercase tracking-widest text-aura-gray/40">Aura Build v4.2.0-Alpha</span>
                         </div>
+
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                localStorage.removeItem('aura_chat_history');
+                                await supabase.auth.signOut();
+                                window.location.href = '/login';
+                            }}
+                            className="w-full py-4 text-aura-gray hover:text-rose-500 font-bold text-xs uppercase tracking-widest transition-colors"
+                        >
+                            Terminate Session
+                        </button>
                     </div>
                 </div>
             </form>

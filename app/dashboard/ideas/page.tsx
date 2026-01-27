@@ -21,20 +21,36 @@ export default function IdeasPage() {
 
     useEffect(() => {
         fetchIdeas();
+
+        const channel = supabase
+            .channel('ideas-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'ideas' }, () => fetchIdeas())
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     async function fetchIdeas() {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+            if (!user) return;
 
-        const { data, error } = await supabase
-            .from('ideas')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+            const { data, error } = await supabase
+                .from('ideas')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
 
-        if (data) setIdeas(data);
-        setIsLoading(false);
+            if (error) throw error;
+            if (data) setIdeas(data);
+        } catch (err) {
+            console.error("Fetch Ideas Error:", err);
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     const filteredIdeas = ideas.filter(idea =>

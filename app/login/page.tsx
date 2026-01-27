@@ -19,6 +19,7 @@ export default function LoginPage() {
         setMessage("");
 
         try {
+            localStorage.removeItem('aura_chat_history'); // Clear chat on new login attempt
             if (isSignUp) {
                 const { error } = await supabase.auth.signUp({
                     email,
@@ -45,6 +46,7 @@ export default function LoginPage() {
     };
 
     const handleGoogleLogin = async () => {
+        localStorage.removeItem('aura_chat_history'); // Clear chat on new login attempt
         await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {

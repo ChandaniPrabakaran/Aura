@@ -23,6 +23,15 @@ export default function TimelinePage() {
 
     useEffect(() => {
         fetchEvents();
+
+        const channel = supabase
+            .channel('timeline-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => fetchEvents())
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     async function fetchEvents() {

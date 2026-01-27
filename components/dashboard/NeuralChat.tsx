@@ -19,12 +19,28 @@ interface NeuralChatProps {
         ideas: any[];
         events: any[];
     };
+    onRefresh?: () => void;
 }
 
-export default function NeuralChat({ userData }: NeuralChatProps) {
-    const [messages, setMessages] = useState<Message[]>([
-        { role: 'assistant', content: "Welcome back, Chandani. I've finished scanning your manifestation trajectory for the day. You're remarkably close to reaching your Weekly Milestone. Should we review the remaining steps together?" }
-    ]);
+export default function NeuralChat({ userData, onRefresh }: NeuralChatProps) {
+    const [messages, setMessages] = useState<Message[]>([]);
+
+    // Load initial messages
+    useEffect(() => {
+        const saved = localStorage.getItem('aura_chat_history');
+        if (saved) {
+            setMessages(JSON.parse(saved));
+        } else {
+            setMessages([{ role: 'assistant', content: "Welcome back, Chandani. I've finished scanning your manifestation trajectory for the day. You're remarkably close to reaching your Weekly Milestone. Should we review the remaining steps together?" }]);
+        }
+    }, []);
+
+    // Save messages whenever they change
+    useEffect(() => {
+        if (messages.length > 0) {
+            localStorage.setItem('aura_chat_history', JSON.stringify(messages));
+        }
+    }, [messages]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -63,6 +79,10 @@ export default function NeuralChat({ userData }: NeuralChatProps) {
             });
             const data = await response.json();
             setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+
+            if (data.actionTaken && onRefresh) {
+                onRefresh();
+            }
         } catch (error) {
             setMessages(prev => [...prev, { role: 'assistant', content: "My thought process was briefly interrupted. One moment while I re-synchronize." }]);
         } finally {
@@ -121,11 +141,15 @@ export default function NeuralChat({ userData }: NeuralChatProps) {
                                         transition={{ delay: 0.4 }}
                                         className="mt-8 flex flex-wrap gap-3"
                                     >
-                                        <button className="px-5 py-2.5 rounded-2xl bg-white border border-black/[0.04] text-[13px] font-bold text-aura-charcoal shadow-sm hover:shadow-md hover:border-aura-indigo/20 transition-all flex items-center gap-2 group/btn">
+                                        <button
+                                            onClick={() => setInput("Generate a step-by-step plan for ")}
+                                            className="px-5 py-2.5 rounded-2xl bg-white border border-black/[0.04] text-[13px] font-bold text-aura-charcoal shadow-sm hover:shadow-md hover:border-aura-indigo/20 transition-all flex items-center gap-2 group/btn">
                                             <span>Formulate Plan</span>
                                             <ArrowRight size={14} className="text-aura-indigo group-hover/btn:translate-x-1 transition-transform" />
                                         </button>
-                                        <button className="px-5 py-2.5 rounded-2xl bg-aura-indigo-soft text-[13px] font-bold text-aura-indigo hover:bg-aura-indigo hover:text-white transition-all">
+                                        <button
+                                            onClick={() => setInput("Search your deep memory for ")}
+                                            className="px-5 py-2.5 rounded-2xl bg-aura-indigo-soft text-[13px] font-bold text-aura-indigo hover:bg-aura-indigo hover:text-white transition-all">
                                             Deep Memory Recall
                                         </button>
                                     </motion.div>
@@ -154,13 +178,18 @@ export default function NeuralChat({ userData }: NeuralChatProps) {
                 <div className="max-w-3xl mx-auto relative">
                     {/* Suggested Shortcuts - Floating Glass */}
                     <div className="flex gap-2 mb-6 justify-center overflow-x-auto no-scrollbar pb-2">
-                        {["Map my day", "Search for 'Project X'", "Set a goal for tonight"].map((suggestion) => (
+                        {[
+                            { label: "Crystallize Idea", prefix: "Crystallize this: " },
+                            { label: "Add Goal", prefix: "Add Goal: " },
+                            { label: "New Command", prefix: "Execute command: " },
+                            { label: "Temporal Map", prefix: "Map my day: " }
+                        ].map((suggestion) => (
                             <button
-                                key={suggestion}
-                                onClick={() => setInput(suggestion)}
+                                key={suggestion.label}
+                                onClick={() => setInput(suggestion.prefix)}
                                 className="px-4 py-2 text-[12px] font-bold whitespace-nowrap bg-white/60 backdrop-blur-xl border border-black/[0.04] rounded-2xl text-aura-gray hover:text-aura-indigo hover:bg-white hover:shadow-lg hover:shadow-aura-indigo/5 transition-all outline-none"
                             >
-                                {suggestion}
+                                {suggestion.label}
                             </button>
                         ))}
                     </div>
