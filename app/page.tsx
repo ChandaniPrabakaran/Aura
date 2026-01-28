@@ -1,148 +1,249 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Brain, Calendar, CheckCircle2, Lightbulb, MessageSquare, ArrowRight, Sparkles, Wand2, Stars, Zap, Shield, Target } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { Sparkles, ArrowRight, Shield, Zap, Globe, Cpu, Brain, Target, Calendar, ChevronDown } from "lucide-react";
+import Image from "next/image";
+import { useRef } from "react";
 
-export default function Home() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+export default function LandingPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"]
+  });
+
+  const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 1.1]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const heroTextY = useTransform(scrollYProgress, [0, 0.5], [0, 100]);
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#1A1A1A] font-body selection:bg-aura-gold/10 selection:text-aura-charcoal overflow-x-hidden">
+    <div ref={containerRef} className="min-h-screen bg-[#FAF9F6] selection:bg-aura-gold selection:text-white overflow-x-hidden font-body">
 
-      {/* Elegant Background Elements */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-aura-gold/5 rounded-full blur-[150px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-aura-indigo/5 rounded-full blur-[150px]" />
-      </div>
-
-      {/* Premium Nav */}
-      <nav className="fixed top-0 w-full z-50 py-10 px-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-between bg-white/40 backdrop-blur-3xl border border-black/[0.03] py-5 px-10 rounded-[36px] shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-white border border-black/[0.05] rounded-xl flex items-center justify-center shadow-md transform -rotate-3 hover:rotate-0 transition-transform">
-              <Sparkles className="text-aura-gold" size={20} />
-            </div>
-            <span className="font-serif text-3xl italic tracking-tighter text-aura-charcoal">Aura.</span>
+      {/* Immersive Navigation */}
+      <nav className="fixed top-0 w-full z-50 px-10 py-8 flex items-center justify-between backdrop-blur-sm bg-[#FAF9F6]/10">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-3"
+        >
+          <div className="w-10 h-10 rounded-xl bg-aura-charcoal shadow-2xl flex items-center justify-center">
+            <Sparkles className="text-aura-gold" size={20} />
           </div>
+          <span className="text-2xl font-serif italic tracking-tighter text-aura-charcoal">Aura.</span>
+        </motion.div>
 
-          <div className="hidden md:flex items-center gap-12">
-            {['Abilities', 'Intelligence', 'Sovereignty'].map((link) => (
-              <a
-                key={link}
-                href={`#${link.toLowerCase()}`}
-                className="text-[10px] font-black uppercase tracking-[.4em] text-aura-charcoal/30 hover:text-aura-gold transition-colors"
-              >
-                {link}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-12"
+        >
+          <div className="hidden md:flex gap-10">
+            {['Strategy', 'Logic', 'Intelligence'].map((item) => (
+              <a key={item} href={`#${item.toLowerCase()}`} className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/40 hover:text-aura-charcoal transition-colors">
+                {item}
               </a>
             ))}
           </div>
-
-          <Link href="/login" className="px-10 py-4 rounded-2xl bg-aura-charcoal text-[#FAF9F6] font-black text-[10px] uppercase tracking-[0.3em] hover:bg-aura-gold transition-all shadow-xl hover:scale-105 active:scale-95">
-            Portal access
+          <Link href="/login" className="px-8 py-4 rounded-2xl bg-aura-charcoal text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl hover:scale-105 transition-all active:scale-95">
+            Identify
           </Link>
-        </div>
+        </motion.div>
       </nav>
 
-      {/* Hero: Intellectual Grandeur */}
-      <section className="relative pt-64 pb-48 px-10">
-        <div className="max-w-6xl mx-auto text-center relative z-10">
+      {/* Cinematic Hero Section */}
+      <section className="relative h-screen flex items-center justify-center px-10 overflow-hidden">
+        <motion.div
+          style={{ scale: heroScale, opacity: heroOpacity }}
+          className="absolute inset-0 z-0"
+        >
+          <Image
+            src="/landing-hero.png"
+            alt="Aura Cinematic Hero"
+            fill
+            className="object-cover opacity-90"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#FAF9F6]/20 to-[#FAF9F6]" />
+        </motion.div>
+
+        <motion.div
+          style={{ y: heroTextY }}
+          className="relative z-10 text-center max-w-5xl space-y-12"
+        >
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-4 px-8 py-3 rounded-full bg-white border border-black/[0.03] text-aura-gold text-[10px] font-black uppercase tracking-[0.4em] mb-16 shadow-sm"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/10 backdrop-blur-3xl border border-white/20 shadow-2xl"
           >
-            <Stars size={18} />
-            Intelligence Reimagined
+            <div className="w-1.5 h-1.5 rounded-full bg-aura-gold animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/60">Neural Synchronization Active</span>
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-8xl md:text-[160px] font-serif italic tracking-tighter text-aura-charcoal leading-[0.8] mb-20"
+            transition={{ delay: 0.4 }}
+            className="text-[120px] md:text-[180px] font-serif italic text-aura-charcoal leading-[0.8] tracking-tighter"
           >
-            Masterfully <br />
-            <span className="text-aura-charcoal/20">Articulated.</span>
+            Aura<span className="text-aura-gold">.</span>
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="max-w-3xl mx-auto text-aura-charcoal/40 text-xl md:text-2xl font-medium mb-20 leading-relaxed italic"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="text-2xl md:text-3xl font-serif italic text-aura-charcoal/60 max-w-2xl mx-auto"
           >
-            "Aura isn’t just an assistant—it’s your digital shadow.
-            It captures your thoughts, organizes your destiny, and recalls every detail with crystalline clarity."
+            Experience the world's most sophisticated executive environment. Orchestrate your reality with crystalline logic.
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-10"
+            transition={{ delay: 0.8 }}
+            className="flex flex-col md:flex-row items-center justify-center gap-8 pt-12"
           >
-            <Link href="/login" className="group h-24 px-16 rounded-[40px] bg-aura-charcoal text-[#FAF9F6] font-black uppercase text-xs tracking-[0.4em] flex items-center gap-6 hover:bg-aura-gold hover:shadow-2xl transition-all hover:scale-105 shadow-xl">
-              Initialize Sequence <ArrowRight className="group-hover:translate-x-2 transition-transform" />
+            <Link href="/login" className="px-12 py-6 rounded-[32px] bg-aura-charcoal text-white text-[13px] font-black uppercase tracking-[0.3em] shadow-2xl hover:scale-105 transition-all group overflow-hidden relative">
+              <span className="relative z-10">Request Access</span>
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
+              />
             </Link>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-black uppercase tracking-[0.3em] text-aura-charcoal/30">Protocol v1.0.4</span>
+              <div className="w-12 h-px bg-aura-charcoal/10" />
+            </div>
+          </motion.div>
+        </motion.div>
+
+        <motion.div
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="absolute bottom-12 left-1/2 -translate-x-1/2 text-aura-charcoal/20"
+        >
+          <ChevronDown size={32} />
+        </motion.div>
+      </section>
+
+      {/* Philosophy Section */}
+      <section className="py-60 px-10 relative">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-32 items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="space-y-12"
+          >
+            <h2 className="text-8xl font-serif italic text-aura-charcoal tracking-tighter leading-tight">
+              Crystalline <br /> Logic<span className="text-aura-gold">.</span>
+            </h2>
+            <p className="text-xl font-medium text-aura-charcoal/50 leading-relaxed max-w-lg italic">
+              Aura is not an application. It is a neural extension. Designed for those whose time is the currency of reality, we provide the ultimate strategic vault for manifestations.
+            </p>
+            <div className="grid grid-cols-2 gap-12 pt-8">
+              {[
+                { label: "Temporal Accuracy", val: "99.9%" },
+                { label: "Neural Latency", val: "<2ms" }
+              ].map((stat, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="text-4xl font-serif italic font-black text-aura-gold">{stat.val}</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.3em] text-aura-charcoal/20">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="relative aspect-square rounded-[80px] overflow-hidden shadow-2xl rotate-3"
+          >
+            <Image
+              src="/login-bg.png"
+              alt="Architecture"
+              fill
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-aura-charcoal/10 backdrop-blur-[2px]" />
           </motion.div>
         </div>
       </section>
 
-      {/* Capabilities (Features) Grid */}
-      <section id="abilities" className="py-48 px-10 bg-white border-y border-black/[0.02]">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-32 flex flex-col md:flex-row md:items-end justify-between gap-12">
-            <div className="max-w-2xl">
-              <span className="text-[10px] font-black uppercase tracking-[0.5em] text-aura-gold mb-6 block">Capabilities</span>
-              <h2 className="text-6xl md:text-9xl font-serif italic tracking-tighter text-aura-charcoal leading-[0.85]">ELEVATED <br /> ABILITIES.</h2>
-            </div>
-            <p className="text-aura-charcoal/40 text-xl md:text-2xl font-medium leading-relaxed max-w-md italic">"A single, cohesive stream for your digital existence."</p>
-          </div>
+      {/* Core Vectors Grid */}
+      <section className="py-60 bg-aura-charcoal text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 pointer-events-none">
+          <Image src="/dashboard-bg.png" alt="Grid" fill className="object-cover" />
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="max-w-7xl mx-auto px-10 relative z-10">
+          <header className="mb-32 text-center space-y-8">
+            <h2 className="text-7xl font-serif italic tracking-tighter leading-tight">Elite Orchestration.</h2>
+            <p className="text-white/40 text-xl max-w-xl mx-auto italic">Discrete, powerful, and impeccably designed for the modern intellectual.</p>
+          </header>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {[
-              { icon: Brain, title: "Crystal Recall", desc: "Aura doesn’t just store data; it relates memories. Ask about an idea from months ago with perfect accuracy.", color: "aura-gold" },
-              { icon: Calendar, title: "Chronological Stasis", desc: "Direct Google API integration for ultimate privacy. Manage your temporal flow with pure, natural language.", color: "aura-indigo" },
-              { icon: Target, title: "Strategic Logic", desc: "Turn messy brainstorms into structured projects. Aura recognizes patterns in your chaotic brilliance.", color: "aura-charcoal" }
-            ].map((f, i) => (
+              { icon: Target, title: "Objectives", desc: "Define trajectories. Calibrate long-term manifestations with precision." },
+              { icon: Calendar, title: "Temporal", desc: "Chronological synchronization across all your life dimensions." },
+              { icon: Brain, title: "The Vault", desc: "A secure sanctuary for engrams, impulses, and visionary logic." }
+            ].map((vector, i) => (
               <motion.div
-                key={f.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-                className="p-16 rounded-[64px] bg-[#FAF9F6] border border-black/[0.03] shadow-sm hover:shadow-2xl transition-all group flex flex-col h-full"
+                key={i}
+                whileHover={{ y: -20 }}
+                className="p-16 rounded-[64px] bg-white/5 border border-white/10 backdrop-blur-3xl hover:bg-white/10 transition-all group"
               >
-                <div className={`w-20 h-20 rounded-[32px] bg-white border border-black/[0.05] flex items-center justify-center mb-16 shadow-lg group-hover:scale-110 transition-transform group-hover:bg-aura-charcoal group-hover:text-white transition-all`}>
-                  <f.icon size={36} className="transition-colors" />
-                </div>
-                <h3 className="text-3xl font-serif font-black italic text-aura-charcoal mb-6 tracking-tight">{f.title}</h3>
-                <p className="text-aura-charcoal/40 font-medium text-lg leading-relaxed flex-1 italic">"{f.desc}"</p>
+                <vector.icon size={24} className="text-aura-gold mb-12 group-hover:scale-125 transition-transform" />
+                <h3 className="text-3xl font-serif italic font-black mb-6 tracking-tight">{vector.title}</h3>
+                <p className="text-white/40 text-sm font-medium leading-relaxed italic">{vector.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Footer CTA */}
-      <footer className="py-72 bg-aura-charcoal text-[#FAF9F6] text-center relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] border border-white/[0.05] rounded-full" />
-        </div>
-
-        <div className="relative z-10 px-10">
-          <Zap size={64} className="text-aura-gold mx-auto mb-16" />
-          <h2 className="text-7xl md:text-[140px] font-serif italic tracking-tighter leading-[0.8] mb-20 px-4">
-            Begin your <br /> <span className="text-white/20">Evolution.</span>
+      {/* Final Call to Action */}
+      <section className="py-60 px-10 text-center relative">
+        <div className="max-w-4xl mx-auto space-y-16">
+          <div className="w-px h-32 bg-gradient-to-t from-aura-gold to-transparent mx-auto" />
+          <h2 className="text-[100px] md:text-[140px] font-serif italic text-aura-charcoal leading-[0.8] tracking-tighter">
+            Manifest<br />Reality<span className="text-aura-gold">.</span>
           </h2>
-          <Link href="/login" className="inline-block px-20 py-8 rounded-[40px] bg-[#FAF9F6] text-aura-charcoal font-black uppercase text-xs tracking-[0.5em] hover:bg-aura-gold transition-all hover:scale-110 shadow-3xl">
-            portal initialized
-          </Link>
+          <p className="text-2xl font-serif italic text-aura-charcoal/40 max-w-2xl mx-auto">The trajectory of your future begins with a single synchronization. Step into the Aura.</p>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Link href="/login" className="inline-block px-20 py-8 rounded-[40px] bg-aura-charcoal text-white text-[15px] font-black uppercase tracking-[0.4em] shadow-2xl">
+              Initialize System
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-20 border-t border-black/[0.03] px-10">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
+          <div className="flex items-center gap-3">
+            <Sparkles className="text-aura-gold" size={16} />
+            <span className="text-lg font-serif italic text-aura-charcoal">Aura Executive</span>
+          </div>
+          <div className="flex gap-12">
+            {['Privacy', 'Legal', 'Infrastructure'].map(item => (
+              <span key={item} className="text-[9px] font-black uppercase tracking-[0.3em] text-aura-charcoal/20 hover:text-aura-charcoal cursor-pointer transition-colors">
+                {item}
+              </span>
+            ))}
+          </div>
+          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-aura-charcoal/10">© 2026 Collective Intelligence</p>
         </div>
       </footer>
+
+      {/* Global Ambient System Gradients */}
+      <div className="fixed top-0 right-0 w-[50%] h-[50%] bg-aura-gold/5 rounded-full blur-[200px] pointer-events-none -z-10" />
+      <div className="fixed bottom-0 left-0 w-[40%] h-[40%] bg-aura-charcoal/5 rounded-full blur-[180px] pointer-events-none -z-10" />
     </div>
   );
 }
