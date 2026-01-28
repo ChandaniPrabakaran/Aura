@@ -1,42 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
-  /* Premium Light Mode: "Cloud & Indigo" */
-  --aura-bg: #F8FAFC;
-  --aura-surface: #FFFFFF;
-  --aura-charcoal: #0F172A;
-  --aura-gray: #64748B;
-  --aura-soft-gray: #F1F5F9;
-  --aura-indigo: #6366F1;
-  --aura-indigo-soft: #EEF2FF;
-  --aura-emerald: #10B981;
-  --aura-accent: #8B5CF6;
+  /* "Serene Aura" - Pi.ai Inspired Premium Light Theme */
+  --aura-bg: #FAF9F6;
+  --aura-surface: #F3F1ED;
+  --aura-card: #FFFFFF;
+  --aura-border: rgba(0, 0, 0, 0.05);
 
-  /* Semantic Tones */
+  --aura-indigo: #4A45FF;
+  --aura-charcoal: #1A1A1A;
+  --aura-text-soft: #666360;
+  --aura-accent-soft: #EFECE6;
+  --aura-gold: #D4AF37;
+
   --background: var(--aura-bg);
   --foreground: var(--aura-charcoal);
-  --border: rgba(0, 0, 0, 0.04);
-  --border-strong: rgba(0, 0, 0, 0.08);
-
-  /* Elevation: Soft & Modern */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.02);
-  --shadow-md: 0 10px 30px -5px rgba(99, 102, 241, 0.06);
-  --shadow-lg: 0 20px 50px -10px rgba(15, 23, 42, 0.03);
 }
 
 @theme {
   --color-aura-bg: var(--aura-bg);
   --color-aura-surface: var(--aura-surface);
-  --color-aura-charcoal: var(--aura-charcoal);
-  --color-aura-gray: var(--aura-gray);
-  --color-aura-soft-gray: var(--aura-soft-gray);
+  --color-aura-card: var(--aura-card);
   --color-aura-indigo: var(--aura-indigo);
-  --color-aura-indigo-soft: var(--aura-indigo-soft);
-  --color-aura-emerald: var(--aura-emerald);
-  --color-aura-accent: var(--aura-accent);
+  --color-aura-charcoal: var(--aura-charcoal);
+  --color-aura-text-soft: var(--aura-text-soft);
+  --color-aura-accent-soft: var(--aura-accent-soft);
+  --color-aura-gold: var(--aura-gold);
 
-  --font-display: var(--font-outfit), "SF Pro Display", system-ui, sans-serif;
-  --font-body: var(--font-inter), "SF Pro Text", system-ui, sans-serif;
+  --font-serif: "EB Garamond", serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
 }
 
 @layer base {
@@ -45,76 +39,34 @@
     color: var(--aura-charcoal);
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
-    letter-spacing: -0.012em;
+    /* Native scrolling restored */
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 }
 
 @layer utilities {
-  /* The "Alive" Light Theme Utilities */
-
-  .bg-mesh-light {
-    background-image:
-      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.03) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.03) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.02) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(99, 102, 241, 0.02) 0px, transparent 50%);
-    background-attachment: fixed;
+  .pi-surface {
+    background: var(--aura-bg);
+    border: 1px solid var(--aura-border);
   }
 
-  .glass-card-light {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-md);
+  .pi-glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
   }
 
-  .premium-card {
-    background: white;
-    border: 1px solid var(--border-strong);
-    border-radius: 28px;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  .pi-ai-msg {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    line-height: 1.6;
+    color: var(--aura-charcoal);
   }
 
-  .premium-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-4px);
-    border-color: rgba(99, 102, 241, 0.1);
-  }
-
-  .aura-text-gradient {
-    background: linear-gradient(135deg, var(--aura-charcoal) 0%, var(--aura-indigo) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .shimmer-light {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .shimmer-light::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    transform: translateX(-100%);
-    animation: shimmer-anim 3s infinite;
-  }
-
-  @keyframes shimmer-anim {
-    100% {
-      transform: translateX(100%);
-    }
-  }
-
-  .text-glow {
-    text-shadow: 0 0 30px rgba(99, 102, 241, 0.2);
-  }
-
-  .text-glow-accent {
-    text-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
+  .pi-user-msg {
+    @apply bg-aura-accent-soft/50 rounded-3xl px-6 py-4 max-w-[85%] font-semibold text-aura-charcoal;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -128,6 +80,6 @@
 }
 
 ::selection {
-  background: rgba(99, 102, 241, 0.15);
-  color: var(--aura-indigo);
+  background: #E8E5E0;
+  color: #000;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Sidebar from "@/components/dashboard/Sidebar";
+import { motion } from "framer-motion";
 
 export default function DashboardLayout({
     children,
@@ -8,20 +9,34 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="min-h-screen bg-aura-bg text-aura-charcoal selection:bg-aura-indigo/10 relative flex overflow-hidden">
-            {/* Global Foundation - Mesh & Texture */}
-            <div className="fixed inset-0 bg-aura-bg z-0" />
-            <div className="fixed inset-0 bg-mesh-light z-[1] opacity-100" />
-            <div className="fixed inset-0 opacity-[0.015] pointer-events-none z-[2]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Cfilter id='noiseFilter'%3%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3%3C/filter%3%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3%3C/svg%3")` }} />
+        <div className="flex min-h-screen w-full bg-[#FAF9F6] text-[#1A1A1A] font-body relative">
 
+            {/* Ambient Warm Gradients */}
+            <div className="fixed inset-0 pointer-events-none opacity-40 z-0">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-aura-gold/10 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-aura-indigo/5 rounded-full blur-[120px]" />
+            </div>
+
+            {/* Persistence Layer Column 1: Minimalist Sidebar */}
             <Sidebar />
 
-            <main className="flex-1 relative z-10 w-full h-screen overflow-y-auto no-scrollbar">
-                {children}
-
-                {/* Global Notification Portal */}
-                <div id="notification-portal" className="fixed top-8 right-8 z-[200] space-y-4" />
+            {/* Persistence Layer Column 2: Main Content (Native Scrollable) */}
+            <main className="flex-1 flex flex-col relative z-10 w-full min-h-screen min-w-0">
+                <div className="container max-w-[1200px] mx-auto px-10 py-10 flex-col flex h-full">
+                    {children}
+                </div>
             </main>
+
+            {/* Subtle System Status (Floating) */}
+            <div className="fixed top-8 right-12 z-[100]">
+                <div className="px-4 py-2 rounded-full bg-white/40 backdrop-blur-3xl border border-black/[0.03] flex items-center gap-2 shadow-sm">
+                    <div className="w-1.5 h-1.5 rounded-full bg-aura-gold animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-aura-charcoal/40">Neural Sync Active</span>
+                </div>
+            </div>
+
+            {/* Portal for dynamic overlays */}
+            <div id="notification-portal" className="fixed top-24 right-12 z-[200] space-y-4" />
         </div>
     );
 }

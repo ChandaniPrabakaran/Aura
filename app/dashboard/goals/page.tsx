@@ -2,189 +2,269 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Target, TrendingUp, Calendar, CheckCircle2, ChevronRight, Plus, MoreHorizontal, Stars, Sparkles, Zap, Brain } from "lucide-react";
+import { Target, Plus, Sparkles, TrendingUp, Calendar, Trash2, ArrowUpRight, Trophy, Flag, Globe, Brain } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-interface Goal {
-    id: string;
-    title: string;
-    description: string;
-    target_date: string;
-    status: 'active' | 'completed' | 'abandoned';
-    progress: number;
+function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
 }
 
 export default function GoalsPage() {
-    const [goals, setGoals] = useState<Goal[]>([]);
+    const [goals, setGoals] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isCreating, setIsCreating] = useState(false);
+    const [newGoal, setNewGoal] = useState({ title: "", description: "", targetDate: "", type: "long_term" });
+
     const supabase = createClient();
 
     useEffect(() => {
+        async function fetchGoals() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data } = await supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+            if (data) setGoals(data);
+            setIsLoading(false);
+        }
         fetchGoals();
-
-        const channel = supabase
-            .channel('goals-sync')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' }, () => fetchGoals())
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
     }, []);
 
-    async function fetchGoals() {
-        try {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError) throw authError;
-            if (!user) return;
+    async function handleAddGoal(e: React.FormEvent) {
+        e.preventDefault();
+        if (!newGoal.title.trim()) return;
 
-            const { data, error } = await supabase
-                .from('goals')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false });
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-            if (error) throw error;
-            if (data) setGoals(data);
-        } catch (err) {
-            console.error("Fetch Goals Error:", err);
-        } finally {
-            setIsLoading(false);
+        const { data, error } = await supabase.from('goals').insert({
+            user_id: user.id,
+            title: newGoal.title.trim(),
+            description: newGoal.description.trim(),
+            target_date: newGoal.targetDate || null,
+            status: 'active',
+            progress: 0,
+            type: newGoal.type
+        }).select().single();
+
+        if (!error && data) {
+            setGoals([data, ...goals]);
+            setNewGoal({ title: "", description: "", targetDate: "", type: "long_term" });
+            setIsCreating(false);
         }
     }
 
-    const activeGoals = goals.filter(g => g.status === 'active');
-    const completedGoals = goals.filter(g => g.status === 'completed');
+    async function deleteGoal(id: string) {
+        const { error } = await supabase.from('goals').delete().eq('id', id);
+        if (!error) {
+            setGoals(prev => prev.filter(g => g.id !== id));
+        }
+    }
 
     return (
-        <div className="max-w-[1400px] mx-auto py-24 px-8 flex flex-col min-h-full">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-12 mb-20 relative">
-                <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-6">
-                        <Stars className="text-aura-indigo" size={22} />
-                        <span className="text-[11px] font-black uppercase tracking-[.4em] text-aura-gray/40">Strategic Trajectories</span>
+        <div className="flex-1 flex flex-col space-y-20 py-12 pb-40 relative">
+
+            {/* Immersive Cinematic Header */}
+            <header className="relative flex flex-col md:flex-row md:items-end justify-between gap-12 px-2">
+                <div className="space-y-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center shadow-lg">
+                            <Target size={22} className="text-aura-gold" />
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Strategic Trajectory</span>
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-aura-gold animate-pulse" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-aura-gold/60">Long-term Calibrations</span>
+                            </div>
+                        </div>
                     </div>
-                    <h1 className="text-5xl md:text-8xl font-black font-display tracking-tighter text-aura-charcoal mb-4 uppercase">OBJECTIVES.</h1>
-                    <p className="text-aura-gray text-xl font-medium max-w-lg">
-                        You are currently pursuing <span className="text-aura-indigo font-black">{activeGoals.length} high-level manifestations</span> in the current orbital cycle.
-                    </p>
+
+                    <h1 className="text-8xl font-serif italic tracking-tighter text-aura-charcoal leading-[0.85]">
+                        Objectives<span className="text-aura-gold">.</span>
+                    </h1>
                 </div>
 
-                <button className="h-20 px-12 bg-aura-charcoal text-white rounded-[32px] flex items-center gap-4 font-black uppercase text-xs tracking-[.25em] hover:bg-aura-indigo transition-all shadow-2xl active:scale-95 group relative z-10">
-                    <Plus size={22} className="group-hover:rotate-90 transition-transform duration-500" />
-                    New Trajectory
+                <button
+                    onClick={() => setIsCreating(true)}
+                    className="px-10 py-5 rounded-[24px] bg-aura-charcoal text-[#FAF9F6] font-black text-[13px] uppercase tracking-[0.2em] shadow-2xl hover:scale-105 transition-all flex items-center gap-3 group"
+                >
+                    <Plus size={18} className="group-hover:rotate-90 transition-transform" />
+                    Set New Objective
                 </button>
+            </header>
+
+            {/* Trajectory Insights Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-2">
+                <div className="p-12 rounded-[56px] bg-aura-charcoal text-white relative overflow-hidden group shadow-2xl">
+                    <TrendingUp size={16} className="text-aura-gold mb-10" />
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-white/20 mb-4">Trajectory Status</h3>
+                    <div className="text-6xl font-serif italic font-black tracking-tighter text-white mb-4">
+                        {goals.filter(g => g.status === 'completed').length > 0 ? 'Exalted' : 'Developing'}
+                    </div>
+                    <p className="text-[12px] font-medium text-white/40 leading-relaxed max-w-[200px]">Strategic alignment is currently optimized for long-term growth.</p>
+                    <Globe size={160} className="absolute -right-16 -bottom-16 text-white/5 animate-spin-slow" />
+                </div>
+
+                <div className="p-12 rounded-[56px] bg-white border border-black/[0.03] shadow-xl relative overflow-hidden group">
+                    <Trophy size={16} className="text-aura-gold mb-10" />
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20 mb-4">Fulfilled Vector</h3>
+                    <div className="text-6xl font-serif italic font-black tracking-tighter text-aura-charcoal mb-4">
+                        {goals.filter(g => g.status === 'completed').length}
+                    </div>
+                    <p className="text-[11px] font-medium text-aura-charcoal/40 leading-relaxed italic">Successful manifestations recorded in your legacy vault.</p>
+                </div>
+
+                <div className="p-12 rounded-[56px] bg-white border border-black/[0.03] shadow-xl relative overflow-hidden group">
+                    <Sparkles size={16} className="text-aura-gold mb-10" />
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20 mb-4">Active Potential</h3>
+                    <div className="text-6xl font-serif italic font-black tracking-tighter text-aura-charcoal mb-4">
+                        {goals.filter(g => g.status === 'active').length}
+                    </div>
+                    <p className="text-[11px] font-medium text-aura-charcoal/40 leading-relaxed italic">Objectives currently synchronized for immediate focused execution.</p>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                {/* Main Goals Surface */}
-                <div className="lg:col-span-8 space-y-10">
-                    {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-48 gap-6">
-                            <div className="w-12 h-12 border-4 border-aura-indigo/20 border-t-aura-indigo rounded-full animate-spin" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-aura-indigo animate-pulse">Scanning Orbital Map</span>
-                        </div>
-                    ) : (
-                        <AnimatePresence mode="popLayout">
-                            {activeGoals.map((goal, i) => (
-                                <motion.div
-                                    key={goal.id}
-                                    layout
-                                    initial={{ opacity: 0, scale: 0.98, y: 30 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: i * 0.1 }}
-                                    whileHover={{ y: -10 }}
-                                    className="group p-12 rounded-[56px] bg-white border border-black/[0.04] relative overflow-hidden shadow-sm hover:shadow-2xl hover:border-aura-indigo/10 transition-all"
-                                >
-                                    <div className="absolute top-0 right-0 p-10">
-                                        <button className="text-aura-gray/20 hover:text-aura-indigo transition-colors">
-                                            <MoreHorizontal size={24} />
+            {/* Trajectory Manifest: High-Fidelity Cards */}
+            <section className="px-2">
+                <AnimatePresence mode="popLayout">
+                    {isCreating && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                            className="p-12 rounded-[56px] bg-white border-2 border-aura-gold/20 shadow-2xl mb-20"
+                        >
+                            <form onSubmit={handleAddGoal} className="space-y-12">
+                                <div className="space-y-4">
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        placeholder="Objective Vision Title..."
+                                        value={newGoal.title}
+                                        onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+                                        className="w-full text-5xl font-serif italic font-black bg-transparent border-none focus:outline-none placeholder:text-black/5 text-aura-charcoal"
+                                    />
+                                    <textarea
+                                        placeholder="Strategic detail & crystalline scope..."
+                                        value={newGoal.description}
+                                        onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
+                                        className="w-full text-xl font-medium bg-transparent border-none focus:outline-none placeholder:text-black/5 text-aura-charcoal/60 min-h-[120px] resize-none"
+                                    />
+                                </div>
+                                <div className="flex flex-col md:flex-row gap-12 justify-between items-center bg-black/[0.02] p-8 rounded-[40px]">
+                                    <div className="flex gap-4">
+                                        {['daily', 'weekly', 'monthly', 'long_term'].map(t => (
+                                            <button
+                                                key={t}
+                                                type="button"
+                                                onClick={() => setNewGoal({ ...newGoal, type: t })}
+                                                className={cn(
+                                                    "px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                    newGoal.type === t ? "bg-aura-gold text-white shadow-lg" : "bg-white text-aura-charcoal/30 hover:text-aura-charcoal shadow-sm"
+                                                )}
+                                            >
+                                                {t.replace('_', ' ')}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCreating(false)}
+                                            className="px-10 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-aura-charcoal/30 hover:text-aura-charcoal"
+                                        >
+                                            Abort Set
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="px-12 py-4 rounded-2xl bg-aura-charcoal text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all"
+                                        >
+                                            Launch Objective
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <AnimatePresence mode="popLayout">
+                        {goals.map((goal) => (
+                            <motion.div
+                                layout
+                                key={goal.id}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                whileHover={{ y: -10 }}
+                                className="group p-12 rounded-[56px] bg-white border border-black/[0.03] shadow-xl transition-all duration-500 relative overflow-hidden flex flex-col justify-between min-h-[400px]"
+                            >
+                                <div className="relative z-10">
+                                    <div className="flex items-start justify-between mb-8">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-2xl bg-aura-gold/10 flex items-center justify-center text-aura-gold">
+                                                <Flag size={20} />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-aura-charcoal/20">Vector Type</span>
+                                                <div className="text-[11px] font-black uppercase tracking-widest text-aura-gold">{goal.type?.replace('_', ' ')}</div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => deleteGoal(goal.id)}
+                                            className="p-4 rounded-2xl hover:bg-red-50 text-red-300 opacity-0 group-hover:opacity-100 transition-all"
+                                        >
+                                            <Trash2 size={20} />
                                         </button>
                                     </div>
 
-                                    <div className="flex flex-col md:flex-row items-start gap-10">
-                                        <div className="w-20 h-20 rounded-[32px] bg-aura-indigo/5 border border-aura-indigo/10 flex items-center justify-center text-aura-indigo shrink-0 shadow-sm group-hover:bg-aura-indigo group-hover:text-white transition-all duration-700">
-                                            <Target size={36} className="group-hover:scale-110 transition-transform duration-700" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex flex-wrap items-center gap-4 mb-4">
-                                                <h3 className="text-3xl font-black tracking-tighter text-aura-charcoal uppercase leading-none">{goal.title}</h3>
-                                                {goal.progress >= 90 && (
-                                                    <span className="px-4 py-1.5 rounded-full bg-aura-emerald/5 text-aura-emerald text-[9px] font-black uppercase tracking-[0.2em] animate-pulse border border-aura-emerald/10 shadow-sm">Convergence Immminent</span>
-                                                )}
-                                            </div>
-                                            <p className="text-aura-gray text-lg font-medium leading-relaxed mb-12 max-w-2xl line-clamp-2">{goal.description}</p>
+                                    <h3 className="text-4xl font-serif italic font-black text-aura-charcoal tracking-tight leading-tight mb-6">
+                                        {goal.title}
+                                    </h3>
+                                    <p className="text-[15px] font-medium text-aura-charcoal/40 leading-relaxed line-clamp-3 mb-12">
+                                        {goal.description || "The strategic details of this objective are unfolding as you manifest your trajectory."}
+                                    </p>
+                                </div>
 
-                                            {/* Progress Engine */}
-                                            <div className="space-y-6">
-                                                <div className="flex justify-between items-end">
-                                                    <span className="text-[11px] font-black uppercase tracking-[0.3em] text-aura-gray/40">Neural Momentum</span>
-                                                    <span className="text-3xl font-black italic tracking-tighter text-aura-indigo">{goal.progress}%</span>
-                                                </div>
-                                                <div className="h-4 w-full bg-aura-surface rounded-full overflow-hidden p-[3px] border border-black/[0.02] shadow-inner">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${goal.progress}%` }}
-                                                        transition={{ duration: 2, ease: [0.16, 1, 0.3, 1] }}
-                                                        className="h-full bg-gradient-to-r from-aura-indigo via-aura-accent to-aura-indigo rounded-full shadow-[0_0_20px_rgba(99,102,241,0.2)]"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="flex flex-wrap gap-10 mt-12">
-                                                <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.25em] text-aura-gray/40">
-                                                    <Calendar size={18} className="text-aura-indigo/30" />
-                                                    Manifesting {goal.target_date ? new Date(goal.target_date).toLocaleDateString() : 'Continuous'}
-                                                </div>
-                                                <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.25em] text-aura-gray/40">
-                                                    <TrendingUp size={18} className="text-aura-emerald/30" />
-                                                    Velocity: {goal.progress > 50 ? 'Accelerated' : 'Nominal'}
-                                                </div>
-                                            </div>
+                                <div className="relative z-10 space-y-6">
+                                    <div className="flex items-end justify-between">
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-aura-charcoal/20">Trajectory Progress</span>
+                                            <div className="text-3xl font-serif italic font-black text-aura-charcoal">{goal.progress || 0}%</div>
                                         </div>
+                                        {goal.target_date && (
+                                            <div className="text-right">
+                                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-aura-charcoal/20">Target Horizon</span>
+                                                <div className="text-sm font-black text-aura-gold tracking-widest">{new Date(goal.target_date).toLocaleDateString()}</div>
+                                            </div>
+                                        )}
                                     </div>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                    )}
+                                    <div className="w-full h-3 bg-black/[0.02] rounded-full overflow-hidden">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${goal.progress || 0}%` }}
+                                            transition={{ duration: 1.5, ease: "easeOut" }}
+                                            className="h-full bg-gradient-to-r from-aura-gold to-aura-gold/40 shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+                                        />
+                                    </div>
+                                </div>
 
-                    {!activeGoals.length && !isLoading && (
-                        <div className="py-64 text-center border-4 border-dashed border-black/[0.02] rounded-[80px] group">
-                            <Target size={96} className="mx-auto mb-10 text-aura-gray/10 group-hover:text-aura-indigo transition-colors duration-1000" />
-                            <p className="text-3xl font-black uppercase tracking-[0.5em] text-aura-charcoal opacity-40">No active trajectories</p>
-                        </div>
-                    )}
+                                {/* Kinetic Bloom Decoration */}
+                                <div className="absolute top-0 right-0 p-12 opacity-0 group-hover:opacity-5 transition-opacity translate-x-10 -translate-y-10 group-hover:translate-x-0 group-hover:translate-y-0 duration-700">
+                                    <Target size={260} className="text-aura-gold" />
+                                </div>
+                                <div className="absolute left-1/2 bottom-0 w-64 h-2 bg-aura-gold/20 blur-2xl transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
                 </div>
+            </section>
 
-                {/* Status Sidebar Surface */}
-                <div className="lg:col-span-4 space-y-10">
-                    <div className="p-12 rounded-[56px] bg-aura-charcoal text-white relative overflow-hidden shadow-2xl group">
-                        <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-aura-indigo/10 blur-[90px] rounded-full group-hover:scale-125 transition-transform duration-1000" />
-                        <h4 className="text-[11px] font-black uppercase tracking-[.4em] mb-12 text-white/40">Synchronized Orbits</h4>
-                        <div className="text-[110px] font-black italic tracking-tighter mb-8 text-white leading-none -ml-2">{completedGoals.length}</div>
-                        <div className="flex items-center gap-3 text-base font-bold italic text-aura-indigo/80">
-                            <Zap size={20} className="fill-current" />
-                            Stable Trajectories Detected
-                        </div>
-                    </div>
-
-                    <div className="p-12 rounded-[56px] bg-white border border-black/[0.04] shadow-sm relative overflow-hidden group">
-                        <div className="absolute top-[-20%] right-[-20%] w-48 h-48 bg-aura-indigo/5 blur-[80px] rounded-full" />
-                        <div className="flex items-center gap-4 mb-10">
-                            <div className="w-10 h-10 rounded-2xl bg-aura-indigo/5 flex items-center justify-center text-aura-indigo border border-aura-indigo/10">
-                                <Brain size={20} />
-                            </div>
-                            <h4 className="text-[11px] font-black uppercase tracking-[.4em] text-aura-gray/40 leading-none">Aura Advisory</h4>
-                        </div>
-                        <p className="text-lg font-medium italic leading-relaxed text-aura-charcoal/80 mb-12 opacity-80">
-                            "Spectral analysis shows high concentration of target convergence. Re-allocating neural power to maintain velocity."
-                        </p>
-                        <button className="w-full h-18 rounded-[32px] bg-aura-surface border border-black/[0.03] text-[11px] font-black uppercase tracking-[.25em] text-aura-indigo hover:bg-aura-indigo hover:text-white transition-all flex items-center justify-center gap-3 group shadow-sm">
-                            Full Simulation <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
-                    </div>
-                </div>
-            </div>
+            {/* Ambient System Gradients */}
+            <div className="fixed top-20 right-0 w-[40%] h-[40%] bg-aura-gold/5 rounded-full blur-[160px] pointer-events-none -z-10" />
+            <div className="fixed bottom-0 left-0 w-[30%] h-[30%] bg-aura-charcoal/5 rounded-full blur-[140px] pointer-events-none -z-10" />
         </div>
     );
 }

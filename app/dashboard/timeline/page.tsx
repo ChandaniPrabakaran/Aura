@@ -2,229 +2,239 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar as CalendarIcon, Clock, MapPin, Zap, AlertCircle, Stars, Sparkles, Wand2, ChevronLeft, ChevronRight, Plus, MessageSquare, Shield } from "lucide-react";
+import { Calendar, Clock, Plus, Sparkles, MapPin, ChevronLeft, ChevronRight, Zap, Target, ArrowRight, Activity, Globe } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-interface Event {
-    id: string;
-    title: string;
-    description: string;
-    start_time: string;
-    end_time: string;
-    location?: string;
+function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
 }
 
 export default function TimelinePage() {
-    const [events, setEvents] = useState<Event[]>([]);
+    const [events, setEvents] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1));
-    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date(2026, 0, 1));
+    const [currentDate, setCurrentDate] = useState(new Date());
+
     const supabase = createClient();
 
     useEffect(() => {
+        async function fetchEvents() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data } = await supabase.from('calendar_events').select('*').eq('user_id', user.id).order('start_time', { ascending: true });
+            if (data) setEvents(data);
+            setIsLoading(false);
+        }
         fetchEvents();
-
-        const channel = supabase
-            .channel('timeline-sync')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => fetchEvents())
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
     }, []);
-
-    async function fetchEvents() {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: eventData } = await supabase
-            .from('calendar_events')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('start_time', { ascending: true });
-
-        if (eventData) setEvents(eventData);
-        setIsLoading(false);
-    }
-
-    const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-    const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
     const monthName = currentDate.toLocaleString('default', { month: 'long' });
     const year = currentDate.getFullYear();
 
-    const prevMonth = () => {
-        setCurrentDate(new Date(year, currentDate.getMonth() - 1, 1));
-    };
+    // Calendar Generation Logic
+    const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
-    const nextMonth = () => {
-        setCurrentDate(new Date(year, currentDate.getMonth() + 1, 1));
-    };
+    const days = [];
+    const daysInMonth = getDaysInMonth(year, currentDate.getMonth());
+    const firstDay = getFirstDayOfMonth(year, currentDate.getMonth());
 
-    const calendarDays = [];
-    const totalDays = daysInMonth(year, currentDate.getMonth());
-    const offset = firstDayOfMonth(year, currentDate.getMonth());
-
-    for (let i = 0; i < offset; i++) calendarDays.push(null);
-    for (let i = 1; i <= totalDays; i++) calendarDays.push(new Date(year, currentDate.getMonth(), i));
+    for (let i = 0; i < firstDay; i++) days.push(null);
+    for (let i = 1; i <= daysInMonth; i++) days.push(i);
 
     const selectedDayEvents = events.filter(e => {
-        if (!selectedDate) return false;
         const eventDate = new Date(e.start_time);
-        return eventDate.getDate() === selectedDate.getDate() &&
-            eventDate.getMonth() === selectedDate.getMonth() &&
-            eventDate.getFullYear() === selectedDate.getFullYear();
+        return eventDate.toDateString() === currentDate.toDateString();
     });
 
+    const hasEventsOnDay = (day: number) => {
+        if (!day) return false;
+        const checkDate = new Date(year, currentDate.getMonth(), day);
+        return events.some(e => new Date(e.start_time).toDateString() === checkDate.toDateString());
+    };
+
     return (
-        <div className="max-w-[1700px] mx-auto p-12 flex flex-col min-h-full">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-16 relative">
-                <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-6">
-                        <Stars className="text-aura-indigo" size={18} />
-                        <span className="text-[11px] font-black uppercase tracking-[.4em] text-aura-gray/40 italic">Temporal Engine / v4.2</span>
-                    </div>
-                    <h1 className="text-5xl md:text-8xl font-black font-display tracking-tighter text-aura-charcoal mb-4 leading-none uppercase">TIMELINE.</h1>
-                    <p className="text-aura-gray text-lg md:text-xl font-medium max-w-lg">Your chronological manifestation path, synchronized with Aura Memory.</p>
-                </div>
+        <div className="flex-1 flex flex-col space-y-20 py-12 pb-40 relative">
 
-                <div className="flex items-center gap-2 bg-white border border-black/[0.03] p-2 rounded-[32px] shadow-sm relative z-10">
-                    <button onClick={prevMonth} className="w-12 h-12 rounded-full flex items-center justify-center text-aura-gray hover:text-aura-indigo hover:bg-aura-indigo/5 transition-all">
-                        <ChevronLeft size={24} />
-                    </button>
-                    <span className="text-sm font-black uppercase tracking-[0.3em] px-8 text-aura-charcoal">{monthName} {year}</span>
-                    <button onClick={nextMonth} className="w-12 h-12 rounded-full flex items-center justify-center text-aura-gray hover:text-aura-indigo hover:bg-aura-indigo/5 transition-all">
-                        <ChevronRight size={24} />
-                    </button>
-                </div>
-            </div>
-
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-10">
-                {/* Calendar Grid */}
-                <div className="lg:col-span-8 bg-white border border-black/[0.04] rounded-[56px] p-12 flex flex-col shadow-lg relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-mesh-light opacity-50 pointer-events-none group-hover:opacity-100 transition-opacity duration-1000" />
-
-                    <div className="grid grid-cols-7 gap-4 mb-10 relative z-10">
-                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                            <div key={day} className="text-center text-[11px] font-black uppercase tracking-[.3em] text-aura-gray/40">
-                                {day}
+            {/* Immersive Cinematic Header */}
+            <header className="relative flex flex-col md:flex-row md:items-end justify-between gap-12 px-2">
+                <div className="space-y-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center shadow-lg">
+                            <Calendar size={22} className="text-aura-gold fill-aura-gold/10" />
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Temporal Stream</span>
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-aura-gold animate-pulse" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-aura-gold/60">Live Trajectory Sync</span>
                             </div>
-                        ))}
+                        </div>
                     </div>
 
-                    <div className="flex-1 grid grid-cols-7 grid-rows-6 gap-3 relative z-10">
-                        {calendarDays.map((day, i) => {
-                            if (!day) return <div key={`empty-${i}`} className="opacity-0" />;
+                    <h1 className="text-8xl font-serif italic tracking-tighter text-aura-charcoal leading-[0.85]">
+                        Timeline<span className="text-aura-gold">.</span>
+                    </h1>
+                </div>
 
-                            const isSelected = selectedDate?.toDateString() === day.toDateString();
-                            const hasEvents = events.some(e => new Date(e.start_time).toDateString() === day.toDateString());
-                            const isToday = new Date().toDateString() === day.toDateString();
+                <div className="flex items-center gap-6">
+                    <div className="px-8 py-4 bg-white border border-black/[0.03] rounded-[24px] shadow-sm flex items-center gap-4">
+                        <Activity size={14} className="text-aura-gold" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-aura-charcoal/30">Total Manifests: {events.length} Units</span>
+                    </div>
+                </div>
+            </header>
 
-                            return (
-                                <motion.button
-                                    key={i}
-                                    whileHover={{ y: -4 }}
-                                    onClick={() => setSelectedDate(day)}
-                                    className={`relative p-8 rounded-[32px] border transition-all flex flex-col items-center justify-center gap-2 group ${isSelected
-                                        ? 'bg-aura-charcoal text-white border-aura-charcoal shadow-2xl scale-[1.05] z-20'
-                                        : 'bg-aura-surface/40 border-black/[0.02] hover:bg-white hover:border-aura-indigo/20 text-aura-gray hover:text-aura-charcoal'
-                                        }`}
+            {/* Trajectory Stream: Cinematic Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 px-2 relative">
+
+                {/* Column 1: High-Fidelity Tactical Calendar */}
+                <div className="lg:col-span-5 space-y-12">
+                    <div className="p-12 rounded-[56px] bg-white border border-black/[0.03] shadow-2xl relative overflow-hidden group">
+                        <div className="flex items-center justify-between mb-12">
+                            <h2 className="text-3xl font-serif italic font-black text-aura-charcoal tracking-tighter">{monthName} <span className="text-aura-charcoal/20 text-xl not-italic ml-2">{year}</span></h2>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setCurrentDate(new Date(year, currentDate.getMonth() - 1, 1))}
+                                    className="w-12 h-12 rounded-2xl bg-black/[0.02] hover:bg-black/[0.05] flex items-center justify-center transition-all"
                                 >
-                                    {isToday && (
-                                        <div className={`absolute top-4 right-4 w-2 h-2 rounded-full ${isSelected ? 'bg-aura-emerald' : 'bg-aura-emerald shadow-[0_0_10px_#10B981]'}`} />
-                                    )}
-                                    <span className={`text-[22px] font-black font-display tracking-tighter ${isSelected ? 'text-white' : 'text-aura-charcoal'}`}>
-                                        {day.getDate()}
-                                    </span>
-                                    {hasEvents && !isSelected && (
-                                        <div className="flex gap-1.5 mt-1">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-aura-indigo" />
-                                            {events.filter(e => new Date(e.start_time).toDateString() === day.toDateString()).length > 1 && (
-                                                <div className="w-1.5 h-1.5 rounded-full bg-aura-indigo/30" />
-                                            )}
-                                        </div>
-                                    )}
-                                </motion.button>
-                            );
-                        })}
+                                    <ChevronLeft size={18} />
+                                </button>
+                                <button
+                                    onClick={() => setCurrentDate(new Date(year, currentDate.getMonth() + 1, 1))}
+                                    className="w-12 h-12 rounded-2xl bg-black/[0.02] hover:bg-black/[0.05] flex items-center justify-center transition-all"
+                                >
+                                    <ChevronRight size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-7 gap-y-6 text-center mb-8">
+                            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                                <span key={`${d}-${i}`} className="text-[10px] font-black text-aura-charcoal/20 uppercase tracking-widest">{d}</span>
+                            ))}
+                        </div>
+
+                        <div className="grid grid-cols-7 gap-3">
+                            {days.map((day, i) => {
+                                const isSelected = day === currentDate.getDate();
+                                const hasEvent = day ? hasEventsOnDay(day) : false;
+
+                                return (
+                                    <button
+                                        key={i}
+                                        disabled={!day}
+                                        onClick={() => day && setCurrentDate(new Date(year, currentDate.getMonth(), day))}
+                                        className={cn(
+                                            "aspect-square rounded-[20px] flex flex-col items-center justify-center text-[15px] font-bold transition-all relative group/day",
+                                            !day && "opacity-0 pointer-events-none",
+                                            isSelected
+                                                ? "bg-aura-charcoal text-white shadow-2xl scale-110 z-10"
+                                                : "text-aura-charcoal hover:bg-black/[0.03]"
+                                        )}
+                                    >
+                                        {day}
+                                        {hasEvent && (
+                                            <motion.div
+                                                layoutId="active-dot"
+                                                className={cn(
+                                                    "w-1.5 h-1.5 rounded-full absolute bottom-3 transition-colors",
+                                                    isSelected ? "bg-aura-gold shadow-[0_0_10px_rgba(212,175,55,0.8)]" : "bg-aura-gold/40"
+                                                )}
+                                            />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Decorative Asset */}
+                        <div className="absolute -left-12 -bottom-12 w-48 h-48 bg-aura-gold/5 rounded-full blur-[80px]" />
+                    </div>
+
+                    <div className="p-10 rounded-[48px] bg-aura-charcoal text-[#FAF9F6] relative overflow-hidden shadow-2xl group">
+                        <Globe size={16} className="text-aura-gold mb-8 opacity-40" />
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-white/20 mb-4">Temporal Resolution</h3>
+                        <div className="text-3xl font-serif italic font-black text-white leading-tight">Trajectory synchronized with UTC-8 Manifest Hub.</div>
+                        <p className="text-[10px] font-medium text-white/40 mt-6 leading-relaxed italic">All manifestations are calibrated to your immediate local context.</p>
+                        <Zap size={100} className="absolute -right-8 -bottom-8 text-white/5 opacity-50 group-hover:rotate-12 transition-transform duration-1000" />
                     </div>
                 </div>
 
-                {/* Day Details Sidebar */}
-                <div className="lg:col-span-4 flex flex-col gap-8">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={selectedDate?.toDateString()}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="flex-1 bg-white border border-black/[0.04] rounded-[56px] p-12 flex flex-col shadow-lg relative overflow-hidden"
-                        >
-                            <div className="absolute top-[-10%] right-[-10%] w-60 h-60 bg-aura-indigo/5 blur-[80px] rounded-full" />
+                {/* Column 2: The Chronological Manifest Flow */}
+                <div className="lg:col-span-7 pb-20">
+                    <div className="flex items-center gap-6 mb-16">
+                        <div className="w-1 h-12 bg-gradient-to-t from-aura-gold to-transparent" />
+                        <div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Chronological Stream</span>
+                            <h2 className="text-4xl font-serif italic font-black text-aura-charcoal tracking-tight">Today's Manifestations.</h2>
+                        </div>
+                    </div>
 
-                            <div className="mb-12 relative z-10 flex justify-between items-start">
-                                <div>
-                                    <h3 className="text-[11px] font-black uppercase tracking-[.4em] text-aura-gray/40 mb-3">Trajectories</h3>
-                                    <h2 className="text-4xl font-black font-display text-aura-charcoal italic tracking-tighter uppercase transition-all duration-700">
-                                        {selectedDate?.toLocaleDateString([], { day: 'numeric', month: 'short' })}
-                                    </h2>
-                                </div>
-                                <div className="p-4 rounded-3xl bg-aura-indigo/5 border border-aura-indigo/10 text-aura-indigo">
-                                    <Clock size={20} />
-                                </div>
-                            </div>
+                    <div className="relative pl-12 space-y-12">
+                        {/* The Stream Line */}
+                        <div className="absolute left-0 top-4 bottom-0 w-px bg-gradient-to-b from-aura-gold via-aura-gold/10 to-transparent" />
 
-                            <div className="flex-1 overflow-y-auto no-scrollbar space-y-5 relative z-10 pr-2">
-                                {selectedDayEvents.length > 0 ? (
-                                    selectedDayEvents.map((event, i) => (
-                                        <div key={event.id} className="p-8 rounded-[40px] bg-aura-surface/40 hover:bg-white border border-black/[0.02] hover:border-aura-indigo/10 transition-all group relative overflow-hidden shadow-sm hover:shadow-md">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <span className="text-[11px] font-bold text-aura-indigo uppercase tracking-[.2em]">
-                                                    {new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                                <Zap size={16} className="text-aura-gray/20 group-hover:text-aura-indigo transition-colors" />
-                                            </div>
-                                            <h4 className="text-lg font-black text-aura-charcoal mb-4 leading-snug">{event.title}</h4>
+                        <AnimatePresence mode="popLayout">
+                            {selectedDayEvents.length > 0 ? (
+                                selectedDayEvents.map((event, i) => (
+                                    <motion.div
+                                        key={event.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: i * 0.1 }}
+                                        className="relative group pr-4"
+                                    >
+                                        {/* Trajectory Marker */}
+                                        <div className="absolute -left-12 top-6 w-3 h-3 rounded-full bg-white border-2 border-aura-gold shadow-lg group-hover:scale-150 transition-transform" />
+                                        <div className="absolute -left-[45.5px] top-[26.5px] w-1.5 h-1.5 rounded-full bg-aura-gold animate-ping opacity-20" />
 
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-white border border-black/[0.04] flex items-center justify-center">
-                                                    <MessageSquare size={12} className="text-aura-indigo" />
+                                        <div className="p-10 rounded-[48px] bg-white border border-black/[0.03] shadow-lg hover:shadow-2xl transition-all duration-500 group relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-12">
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-aura-gold/5 border border-aura-gold/10">
+                                                        <Clock size={12} className="text-aura-gold" />
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-aura-gold">
+                                                            {new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <span className="text-[10px] font-black uppercase tracking-[.15em] text-aura-gray/40">Neural Guard ON</span>
+                                                <h3 className="text-3xl font-serif italic font-black text-aura-charcoal tracking-tight leading-tight group-hover:text-aura-gold transition-colors">{event.title}</h3>
+                                                <p className="text-sm font-medium text-aura-charcoal/40 leading-relaxed italic line-clamp-2 max-w-md">
+                                                    {event.description || "The scope of this manifestation is being refined in real-time."}
+                                                </p>
+                                            </div>
+
+                                            <div className="shrink-0">
+                                                <button className="w-16 h-16 rounded-[24px] bg-black/[0.02] group-hover:bg-aura-charcoal group-hover:text-white flex items-center justify-center transition-all">
+                                                    <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
+                                                </button>
                                             </div>
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="py-24 text-center opacity-30 flex flex-col items-center group">
-                                        <Sparkles size={64} className="text-aura-gray/20 group-hover:text-aura-indigo group-hover:scale-110 transition-all duration-700 mb-8" />
-                                        <p className="text-[11px] font-black uppercase tracking-[.4em] text-aura-gray leading-none">Temporal Void</p>
+                                    </motion.div>
+                                ))
+                            ) : (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="py-32 flex flex-col items-center text-center px-12 opacity-20"
+                                >
+                                    <div className="w-20 h-20 rounded-[32px] border border-aura-charcoal/20 flex items-center justify-center mb-10">
+                                        <Target size={32} />
                                     </div>
-                                )}
-                            </div>
-
-                            <button className="mt-10 h-20 w-full rounded-[32px] bg-aura-charcoal text-white font-black uppercase text-[11px] tracking-[.3em] flex items-center justify-center gap-4 hover:bg-aura-indigo transition-all shadow-xl active:scale-95 group">
-                                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-500" /> New Directive
-                            </button>
-                        </motion.div>
-                    </AnimatePresence>
-
-                    {/* Proactive Guard Deck */}
-                    <div className="p-12 rounded-[56px] bg-aura-charcoal text-white relative overflow-hidden group shadow-2xl">
-                        <div className="absolute -top-10 -right-10 w-48 h-48 bg-aura-indigo/20 rounded-full blur-[80px] pointer-events-none group-hover:scale-125 transition-transform duration-1000" />
-                        <div className="flex items-center gap-4 mb-8 relative z-10">
-                            <Shield size={20} className="text-aura-indigo" />
-                            <h4 className="text-[11px] font-black uppercase tracking-[.4em] text-white/40">Core Guardian</h4>
-                        </div>
-                        <p className="text-base font-medium leading-relaxed italic opacity-80 mb-10 relative z-10">
-                            "Aura balances your temporal paths with a 60-min neural buffer. Alerts will manifest via Workspace Hub."
-                        </p>
-                        <div className="flex items-center justify-between relative z-10">
-                            <div className="text-5xl font-black italic tracking-tighter">{(events.length / 31 * 100).toFixed(1)}%</div>
-                            <div className="px-6 py-2.5 rounded-full bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-[.2em] text-aura-indigo">Protected</div>
-                        </div>
+                                    <h3 className="text-4xl font-serif italic text-aura-charcoal mb-4">No Temporal Anchors.</h3>
+                                    <p className="text-lg font-medium leading-relaxed max-w-sm italic">You have no manifestations recorded for this day in your current trajectory.</p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
             </div>
+
+            {/* Ambient System Gradients */}
+            <div className="fixed top-0 right-0 w-[40%] h-[40%] bg-aura-gold/5 rounded-full blur-[160px] pointer-events-none -z-10" />
+            <div className="fixed bottom-0 left-0 w-[30%] h-[30%] bg-aura-charcoal/5 rounded-full blur-[140px] pointer-events-none -z-10" />
         </div>
     );
 }

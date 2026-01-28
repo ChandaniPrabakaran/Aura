@@ -1,147 +1,230 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, Mail, Lock, ArrowRight, Github, Chrome, ShieldCheck, Zap, Globe, Cpu } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { motion } from "framer-motion";
-import { Stars, Mail, Lock, ArrowRight, Github, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
+    const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
-    const [isSignUp, setIsSignUp] = useState(false);
-    const [message, setMessage] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
     const supabase = createClient();
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setMessage("");
+        setError(null);
 
-        try {
-            localStorage.removeItem('aura_chat_history'); // Clear chat on new login attempt
-            if (isSignUp) {
-                const { error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        emailRedirectTo: `${window.location.origin}/auth/callback`,
-                    },
-                });
-                if (error) throw error;
-                setMessage("Check your email for the confirmation link!");
-            } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-                if (error) throw error;
-                window.location.href = "/dashboard";
-            }
-        } catch (error: any) {
-            setMessage(error.message);
-        } finally {
+        const { error: authError } = isLogin
+            ? await supabase.auth.signInWithPassword({ email, password })
+            : await supabase.auth.signUp({
+                email,
+                password,
+                options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
+            });
+
+        if (authError) {
+            setError(authError.message);
             setLoading(false);
+        } else {
+            router.push("/dashboard");
         }
     };
 
-    const handleGoogleLogin = async () => {
-        localStorage.removeItem('aura_chat_history'); // Clear chat on new login attempt
-        await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: `${window.location.origin}/auth/callback`,
-            },
-        });
-    };
-
     return (
-        <div className="min-h-screen bg-aura-bg flex items-center justify-center p-8 bg-mesh-light relative overflow-hidden">
-            {/* Massive Background Orb */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-aura-indigo/5 blur-[150px] rounded-full pointer-events-none animate-pulse" />
+        <div className="min-h-screen w-full bg-[#FAF9F6] flex overflow-hidden relative">
 
-            <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-xl p-12 md:p-16 rounded-[60px] glass-card-light border-black/[0.03] shadow-3xl relative z-10"
-            >
-                <div className="text-center mb-16">
-                    <div className="w-20 h-20 bg-gradient-to-tr from-aura-indigo to-aura-accent rounded-[32px] flex items-center justify-center shadow-3xl mx-auto mb-10 transform -rotate-6">
-                        <Stars className="text-white" size={40} />
+            {/* Left Side: Cinematic Immersive Visual */}
+            <div className="hidden lg:flex w-7/12 relative overflow-hidden bg-aura-charcoal">
+                <motion.div
+                    initial={{ scale: 1.1, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 2, ease: "easeOut" }}
+                    className="absolute inset-0"
+                >
+                    <Image
+                        src="/login-bg.png"
+                        alt="Cinematic Background"
+                        fill
+                        className="object-cover opacity-80"
+                        priority
+                    />
+                    {/* Dynamic Overlays */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-aura-charcoal/40 via-transparent to-aura-charcoal/20" />
+                    <div className="absolute inset-0 backdrop-blur-[2px]" />
+                </motion.div>
+
+                {/* Floating Executive Insights */}
+                <div className="absolute inset-0 flex flex-col justify-between p-20 z-10">
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                        className="flex items-center gap-3"
+                    >
+                        <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-3xl border border-white/10 flex items-center justify-center shadow-2xl">
+                            <Sparkles className="text-aura-gold" size={24} />
+                        </div>
+                        <span className="text-white font-serif italic text-2xl tracking-tighter">Aura Manifest.</span>
+                    </motion.div>
+
+                    <div className="space-y-12">
+                        <motion.div
+                            initial={{ opacity: 0, x: -30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.8 }}
+                            className="max-w-md"
+                        >
+                            <h1 className="text-7xl font-serif italic text-white leading-[0.9] tracking-tighter mb-8 bg-gradient-to-br from-white via-white to-white/40 bg-clip-text text-transparent">
+                                Synchronize Your Existence.
+                            </h1>
+                            <p className="text-white/40 text-lg font-medium leading-relaxed">
+                                Join the elite collective. A world-class executive environment designed for those who orchestrate reality.
+                            </p>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1.2 }}
+                            className="flex gap-8"
+                        >
+                            {[
+                                { icon: Globe, label: "Temporal sync" },
+                                { icon: Cpu, label: "Neural logic" },
+                                { icon: ShieldCheck, label: "Encrypted" }
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-2 group cursor-help">
+                                    <item.icon size={14} className="text-aura-gold transition-transform group-hover:scale-125" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 group-hover:text-white/60 transition-colors">{item.label}</span>
+                                </div>
+                            ))}
+                        </motion.div>
                     </div>
-                    <h1 className="text-5xl font-black font-display tracking-tighter text-aura-charcoal mb-4">
-                        {isSignUp ? "Step into the Light" : "Resume Connectivity"}
-                    </h1>
-                    <p className="text-aura-gray text-[10px] font-black uppercase tracking-[0.4em] italic opacity-60">
-                        Aura Neural Network Access
-                    </p>
                 </div>
 
-                <form onSubmit={handleAuth} className="space-y-6">
-                    <div className="relative group">
-                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-aura-gray/40 group-focus-within:text-aura-indigo transition-colors" size={22} />
-                        <input
-                            type="email"
-                            placeholder="Email identity"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-black/[0.02] border border-black/[0.04] rounded-[28px] py-6 pl-16 pr-8 text-lg font-medium focus:outline-none focus:border-aura-indigo/40 transition-all text-aura-charcoal placeholder:text-aura-gray/30"
-                            required
-                        />
+                {/* Animated Light Streaks */}
+                <motion.div
+                    animate={{ x: ['100%', '-100%'], opacity: [0, 0.5, 0] }}
+                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                    className="absolute top-1/4 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-aura-gold/50 to-transparent rotate-[-15deg]"
+                />
+            </div>
+
+            {/* Right Side: Sophisticated Interaction Form */}
+            <div className="flex-1 flex flex-col items-center justify-center px-8 lg:px-20 relative z-20">
+                <div className="w-full max-w-[420px]">
+                    <div className="mb-16">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-aura-gold/5 border border-aura-gold/10 mb-6">
+                            <div className="w-1.5 h-1.5 rounded-full bg-aura-gold animate-pulse" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-aura-gold/60">System Ready for Identification</span>
+                        </div>
+                        <h2 className="text-5xl font-serif italic text-aura-charcoal tracking-tighter">
+                            {isLogin ? "Welcome Back." : "Create Identity."}
+                        </h2>
                     </div>
 
-                    <div className="relative group">
-                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-aura-gray/40 group-focus-within:text-aura-indigo transition-colors" size={22} />
-                        <input
-                            type="password"
-                            placeholder="Secure pattern"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-black/[0.02] border border-black/[0.04] rounded-[28px] py-6 pl-16 pr-8 text-lg font-medium focus:outline-none focus:border-aura-indigo/40 transition-all text-aura-charcoal placeholder:text-aura-gray/30"
-                            required
-                        />
+                    <form onSubmit={handleAuth} className="space-y-6">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={isLogin ? "login" : "signup"}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.3 }}
+                                className="space-y-4"
+                            >
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-aura-charcoal/30 ml-1">Universal Address</label>
+                                    <div className="relative group">
+                                        <Mail size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-aura-charcoal/20 group-focus-within:text-aura-gold transition-colors" />
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="you@domain.com"
+                                            required
+                                            className="w-full pl-14 pr-8 py-5 rounded-[24px] bg-white border border-black/[0.05] focus:border-aura-gold/30 focus:outline-none transition-all shadow-sm hover:shadow-md text-[15px] font-bold text-aura-charcoal placeholder:text-black/5"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-aura-charcoal/30 ml-1">Access Protocol</label>
+                                    <div className="relative group">
+                                        <Lock size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-aura-charcoal/20 group-focus-within:text-aura-gold transition-colors" />
+                                        <input
+                                            type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="••••••••"
+                                            required
+                                            className="w-full pl-14 pr-8 py-5 rounded-[24px] bg-white border border-black/[0.05] focus:border-aura-gold/30 focus:outline-none transition-all shadow-sm hover:shadow-md text-[15px] font-bold text-aura-charcoal placeholder:text-black/5"
+                                        />
+                                    </div>
+                                </div>
+
+                                {error && (
+                                    <motion.p
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="text-[11px] font-bold text-red-500 bg-red-500/5 py-3 px-5 rounded-2xl border border-red-500/10"
+                                    >
+                                        {error}
+                                    </motion.p>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full bg-aura-charcoal text-[#FAF9F6] py-5 rounded-[24px] font-black text-[13px] uppercase tracking-[0.2em] shadow-2xl hover:bg-black/80 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group overflow-hidden relative"
+                                >
+                                    <span className="relative z-10">{loading ? "Synchronizing..." : (isLogin ? "Authenticate" : "Manifest Identity")}</span>
+                                    <ArrowRight size={18} className="relative z-10 transition-transform group-hover:translate-x-2" />
+
+                                    {/* Hover Shine Effect */}
+                                    <motion.div
+                                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
+                                    />
+                                </button>
+                            </motion.div>
+                        </AnimatePresence>
+                    </form>
+
+                    <div className="mt-12 text-center">
+                        <button
+                            onClick={() => setIsLogin(!isLogin)}
+                            className="text-[11px] font-black uppercase tracking-[0.3em] text-aura-charcoal/30 hover:text-aura-charcoal transition-colors underline-offset-8 hover:underline"
+                        >
+                            {isLogin ? "Request Access to Collective (Sign Up)" : "Existing Identity Found (Sign In)"}
+                        </button>
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full h-20 bg-aura-charcoal text-white rounded-[32px] font-black uppercase text-sm tracking-[0.2em] hover:bg-aura-indigo transition-all shadow-3xl flex items-center justify-center gap-4 active:scale-95 disabled:opacity-30"
-                    >
-                        {loading ? "Synchronizing..." : (isSignUp ? "Finalize Entry" : "Establish Link")}
-                        <ArrowRight size={20} />
-                    </button>
-                </form>
-
-                <div className="mt-12 pt-12 border-t border-black/[0.03] text-center">
-                    <button
-                        onClick={handleGoogleLogin}
-                        className="w-full h-20 glass-card-light rounded-[32px] flex items-center justify-center gap-4 text-aura-charcoal font-black text-xs uppercase tracking-widest hover:border-aura-indigo/20 transition-all shadow-lg active:scale-95 border-black/[0.04]"
-                    >
-                        <svg className="w-6 h-6" viewBox="0 0 24 24">
-                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                            <path fill="#34A853" d="M12 23c3.11 0 5.71-1.03 7.61-2.79l-3.57-2.77c-.99.66-2.25 1.05-4.04 1.05-3.11 0-5.74-2.1-6.68-4.92H1.64v2.85C3.59 20.25 7.55 23 12 23z" />
-                            <path fill="#FBBC05" d="M5.32 13.57c-.24-.7-.37-1.44-.37-2.22s.13-1.52.37-2.22V6.28H1.64C.6 8.39 0 10.7 0 12.5s.6 4.11 1.64 6.22l3.68-2.65z" />
-                            <path fill="#EA4335" d="M12 4.1c1.69 0 3.21.58 4.41 1.72l3.31-3.31C17.7 1.05 15.11 0 12 0 7.55 0 3.59 2.75 1.64 6.28L5.32 9.13C6.26 6.31 8.89 4.1 12 4.1z" />
-                        </svg>
-                        Authorize with Google
-                    </button>
+                    <div className="mt-20 pt-10 border-t border-black/[0.03] space-y-6">
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/10 text-center">Neural Gateway Shortcuts</p>
+                        <div className="flex gap-4">
+                            <button className="flex-1 py-4 rounded-2xl border border-black/[0.05] hover:bg-black/[0.02] transition-all flex items-center justify-center gap-2 group">
+                                <Chrome size={16} className="text-aura-charcoal/20 group-hover:text-aura-charcoal transition-colors" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-aura-charcoal/40">OpenID</span>
+                            </button>
+                            <button className="flex-1 py-4 rounded-2xl border border-black/[0.05] hover:bg-black/[0.02] transition-all flex items-center justify-center gap-2 group">
+                                <Github size={16} className="text-aura-charcoal/20 group-hover:text-aura-charcoal transition-colors" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-aura-charcoal/40">SecureGit</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                {message && (
-                    <div className="mt-8 p-6 rounded-3xl bg-aura-indigo/5 border border-aura-indigo/10 text-aura-indigo text-xs font-black text-center uppercase tracking-widest flex items-center justify-center gap-3">
-                        <Sparkles size={16} /> {message}
-                    </div>
-                )}
-
-                <div className="mt-12 text-center">
-                    <button
-                        onClick={() => setIsSignUp(!isSignUp)}
-                        className="text-aura-gray/40 text-[10px] font-black uppercase tracking-[0.3em] hover:text-aura-indigo transition-colors flex items-center justify-center gap-2 mx-auto"
-                    >
-                        {isSignUp ? "Reconnect with existing ID" : "Initialize new neural link"} <Stars size={14} />
-                    </button>
-                </div>
-            </motion.div>
+            {/* Ambient System Gradients */}
+            <div className="fixed top-0 right-0 w-[30%] h-[30%] bg-aura-gold/5 rounded-full blur-[120px] pointer-events-none" />
+            <div className="fixed bottom-0 left-0 w-[20%] h-[20%] bg-aura-charcoal/5 rounded-full blur-[100px] pointer-events-none" />
         </div>
     );
 }

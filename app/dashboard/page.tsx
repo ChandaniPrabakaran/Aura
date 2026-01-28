@@ -1,213 +1,209 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    Activity, Target, Lightbulb, CheckCircle2,
-    Calendar, ArrowRight, Sparkles, Brain, Clock, Zap, ChevronRight
-} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import NeuralChat from "@/components/dashboard/NeuralChat";
+import { Sparkles, Calendar, Target, CheckCircle2, Zap, LayoutDashboard, Search, Activity, ArrowUpRight, TrendingUp, Cpu, Globe, Brain, Clock } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
-interface Goal { id: string; title: string; progress: number; }
-interface Todo { id: string; title: string; status: string; }
-interface Idea { id: string; title: string; created_at: string; }
-interface Event { id: string; title: string; start_time: string; }
-
-export default function DashboardHap() {
-    const [stats, setStats] = useState({ tasks: 0, goals: 0, ideas: 0 });
-    const [recentTasks, setRecentTasks] = useState<Todo[]>([]);
-    const [activeGoals, setActiveGoals] = useState<Goal[]>([]);
-    const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-    const [recentIdeas, setRecentIdeas] = useState<Idea[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
+export default function DashboardPage() {
+    const [stats, setStats] = useState({ tasks: 0, goals: 0, events: 0, ideas: 0 });
+    const [userData, setUserData] = useState<{ tasks: any[]; goals: any[]; ideas: any[]; events: any[] }>({ tasks: [], goals: [], ideas: [], events: [] });
+    const [currentTime, setCurrentTime] = useState(new Date());
     const supabase = createClient();
 
     useEffect(() => {
-        fetchAllData();
+        async function fetchDashboardData() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
-        // Enable Realtime Synchronization
-        const channel = supabase
-            .channel('dashboard-sync')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, () => fetchAllData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' }, () => fetchAllData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'ideas' }, () => fetchAllData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => fetchAllData())
-            .subscribe();
+            const [tasks, goals, events, ideas] = await Promise.all([
+                supabase.from('todos').select('*').eq('user_id', user.id).eq('status', 'pending'),
+                supabase.from('goals').select('*').eq('user_id', user.id).eq('status', 'active'),
+                supabase.from('calendar_events').select('*').eq('user_id', user.id).gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }),
+                supabase.from('ideas').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+            ]);
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
+            setStats({
+                tasks: tasks.data?.length || 0,
+                goals: goals.data?.length || 0,
+                events: events.data?.length || 0,
+                ideas: ideas.data?.length || 0
+            });
+
+            setUserData({
+                tasks: tasks.data || [],
+                goals: goals.data || [],
+                events: events.data || [],
+                ideas: ideas.data || []
+            });
+        }
+
+        fetchDashboardData();
+        const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(interval);
     }, []);
 
-    async function fetchAllData() {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const [tasksResp, goalsResp, ideasResp, eventsResp] = await Promise.all([
-            supabase.from('todos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
-            supabase.from('goals').select('*').eq('user_id', user.id).eq('status', 'active').order('created_at', { ascending: false }).limit(2),
-            supabase.from('ideas').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(2),
-            supabase.from('calendar_events').select('*').eq('user_id', user.id).gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(3)
-        ]);
-
-        if (tasksResp.data) setRecentTasks(tasksResp.data);
-        if (goalsResp.data) setActiveGoals(goalsResp.data);
-        if (ideasResp.data) setRecentIdeas(ideasResp.data);
-        if (eventsResp.data) setUpcomingEvents(eventsResp.data);
-
-        const [tCount, gCount, iCount] = await Promise.all([
-            supabase.from('todos').select('id', { count: 'exact' }).eq('user_id', user.id).eq('status', 'pending'),
-            supabase.from('goals').select('id', { count: 'exact' }).eq('user_id', user.id).eq('status', 'active'),
-            supabase.from('ideas').select('id', { count: 'exact' }).eq('user_id', user.id)
-        ]);
-
-        setStats({
-            tasks: tCount.count || 0,
-            goals: gCount.count || 0,
-            ideas: iCount.count || 0
-        });
-        setIsLoading(false);
-    }
-
     return (
-        <div className="flex h-screen overflow-hidden">
-            {/* Main Conversational Workspace */}
-            <main className="flex-1 flex flex-col relative h-full">
-                {/* Supportive Dynamic Header */}
-                <header className="h-24 flex items-center justify-between px-12 bg-white/40 backdrop-blur-3xl sticky top-0 z-50 border-b border-black/[0.02]">
-                    <div className="flex items-center gap-6">
-                        <div className="flex -space-x-3">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="w-8 h-8 rounded-2xl bg-white border-2 border-aura-bg flex items-center justify-center shadow-sm">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-aura-indigo animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
-                                </div>
-                            ))}
-                        </div>
-                        <div>
-                            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-aura-gray/60 mb-1">State: Active</h2>
-                            <span className="text-base font-bold text-aura-charcoal">Chandani's Executive Core</span>
-                        </div>
-                    </div>
+        <div className="flex-1 flex flex-col space-y-20 relative font-body">
 
-                    <div className="flex items-center gap-8">
-                        <div className="hidden md:flex flex-col items-end">
-                            <div className="flex items-center gap-2 text-aura-emerald font-black text-[10px] uppercase tracking-widest">
-                                <div className="w-1.5 h-1.5 rounded-full bg-aura-emerald shadow-[0_0_8px_#10B981]" />
-                                AURA Sync: Optimal
-                            </div>
-                        </div>
-                        <div className="w-[1px] h-6 bg-black/[0.06]" />
-                        <button className="px-5 py-2.5 bg-white border border-black/[0.04] rounded-2xl text-xs font-bold text-aura-indigo shadow-sm hover:shadow-md transition-all active:scale-95">
-                            Command Map
-                        </button>
-                    </div>
-                </header>
-
-                {/* The Conversational Brain */}
-                <div className="flex-1 min-h-0 bg-transparent">
-                    <NeuralChat
-                        userData={{ tasks: recentTasks, goals: activeGoals, ideas: recentIdeas, events: upcomingEvents }}
-                        onRefresh={fetchAllData}
+            {/* Cinematic Hero: Neural Sync Header */}
+            <header className="relative py-24 rounded-[64px] overflow-hidden bg-aura-charcoal group">
+                {/* Immersive Background Asset */}
+                <motion.div
+                    initial={{ scale: 1.1, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 0.6 }}
+                    transition={{ duration: 2 }}
+                    className="absolute inset-0 pointer-events-none"
+                >
+                    <Image
+                        src="/dashboard-bg.png"
+                        alt="Neural Sync Asset"
+                        fill
+                        className="object-cover"
+                        priority
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-aura-charcoal via-aura-charcoal/40 to-transparent" />
+                </motion.div>
+
+                <div className="relative z-10 px-16 flex flex-col md:flex-row md:items-end justify-between gap-12">
+                    <div className="space-y-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/10 backdrop-blur-3xl border border-white/10"
+                        >
+                            <Brain size={16} className="text-aura-gold animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">Executive Neural Node Active</span>
+                        </motion.div>
+
+                        <div className="space-y-2">
+                            <motion.h1
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="text-8xl font-serif italic text-white tracking-tighter leading-[0.85]"
+                            >
+                                Status: <span className="bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent">Optimal.</span>
+                            </motion.h1>
+                            <p className="text-white/40 text-xl font-medium italic">Your manifestations are synchronized with the primary timeline.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-16 md:mb-4">
+                        <div className="space-y-2">
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Temporal Anchor</span>
+                            <div className="text-4xl font-serif italic text-white/80 tabular-nums">
+                                {currentTime.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Active Vectors</span>
+                            <div className="text-4xl font-serif italic text-aura-gold tabular-nums">
+                                {stats.tasks + stats.goals + stats.events + stats.ideas} <span className="text-white/20 text-xl uppercase tracking-widest font-black not-italic ml-2">Units</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </main>
+            </header>
 
-            {/* Living Context Sidecar (Right) */}
-            <aside className="w-[440px] border-l border-black/[0.03] bg-white/40 backdrop-blur-2xl p-10 overflow-y-auto no-scrollbar relative">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-aura-indigo/5 rounded-full blur-3xl -z-10" />
-
-                <div className="space-y-14">
-
-                    {/* Trajectories: Progress Focus */}
-                    <section>
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <h3 className="text-xs font-black uppercase tracking-widest text-aura-gray/60 mb-1 leading-none">Trajectories</h3>
-                                <p className="text-[10px] font-bold text-aura-indigo">2 Primary Vectors Active</p>
+            {/* Strategic Trajectory Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 px-2">
+                {[
+                    { label: "Manifests", val: stats.tasks, icon: CheckCircle2, path: "/dashboard/tasks", color: "aura-gold" },
+                    { label: "Objectives", val: stats.goals, icon: Target, path: "/dashboard/goals", color: "aura-charcoal" },
+                    { label: "Temporal", val: stats.events, icon: Calendar, path: "/dashboard/timeline", color: "aura-gold" },
+                    { label: "Memories", val: stats.ideas, icon: Brain, path: "/dashboard/ideas", color: "aura-charcoal" }
+                ].map((item, i) => (
+                    <Link key={i} href={item.path}>
+                        <motion.div
+                            whileHover={{ y: -8, scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="p-10 rounded-[48px] bg-white border border-black/[0.03] shadow-sm hover:shadow-2xl transition-all duration-500 group relative overflow-hidden"
+                        >
+                            <item.icon size={16} className={`text-${item.color} mb-8 opacity-20 group-hover:opacity-100 transition-opacity`} />
+                            <div className="text-6xl font-serif italic font-black text-aura-charcoal mb-4 tracking-tighter">
+                                {item.val}
                             </div>
-                            <div className="p-3 bg-aura-indigo/[0.03] rounded-2xl border border-aura-indigo/10">
-                                <Target size={18} className="text-aura-indigo" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20 group-hover:text-aura-gold transition-colors">
+                                {item.label}
+                            </span>
+
+                            {/* Kinetic Decoration */}
+                            <div className="absolute top-0 right-0 p-8 transform translate-x-4 -translate-y-4 opacity-0 group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
+                                <ArrowUpRight size={20} className="text-aura-gold" />
                             </div>
-                        </div>
-                        <div className="space-y-5">
-                            {activeGoals.map(goal => (
-                                <div key={goal.id} className="p-6 bg-white border border-black/[0.06] rounded-3xl shadow-sm group hover:border-aura-indigo/20 transition-all cursor-pointer">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <h4 className="font-bold text-sm text-aura-charcoal leading-snug pr-6">{goal.title}</h4>
-                                        <span className="text-[11px] font-black text-aura-indigo">{goal.progress}%</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-aura-soft-gray rounded-full overflow-hidden p-[2px]">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${goal.progress}%` }}
-                                            transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-                                            className="h-full bg-gradient-to-r from-aura-indigo to-aura-accent rounded-full shadow-[0_0_10px_rgba(99,102,241,0.2)]"
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
+                        </motion.div>
+                    </Link>
+                ))}
+            </div>
 
-                    {/* Timeline Peek: Temporal View */}
-                    <section>
-                        <div className="flex items-center justify-between mb-8">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-aura-gray/60 leading-none">Temporal Map</h3>
-                            <ChevronRight size={14} className="text-aura-gray/40" />
-                        </div>
-                        <div className="space-y-4 relative">
-                            <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-aura-indigo/5" />
-                            {upcomingEvents.map(e => (
-                                <div key={e.id} className="pl-12 relative py-2 group cursor-pointer hover:translate-x-1 transition-transform">
-                                    <div className="absolute left-[11px] top-4 w-3 h-3 rounded-full bg-white border-2 border-aura-indigo/20 group-hover:border-aura-indigo transition-colors" />
-                                    <div className="text-[10px] font-black text-aura-indigo/40 mb-1 uppercase tracking-tight">
-                                        {new Date(e.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </div>
-                                    <div className="text-sm font-bold text-aura-charcoal group-hover:text-aura-indigo transition-colors">{e.title}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
+            {/* Tactical Manifestation Node */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-2">
+                <div className="p-12 rounded-[56px] bg-aura-charcoal text-[#FAF9F6] relative overflow-hidden group shadow-2xl">
+                    <TrendingUp size={16} className="text-aura-gold mb-10" />
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-white/20 mb-4">Temporal Momentum</h3>
+                    <div className="text-6xl font-serif italic font-black tracking-tighter text-white mb-4">
+                        {stats.events > 0 ? `${Math.round((userData.events.filter(e => new Date(e.start_time) < new Date()).length / (stats.events || 1)) * 100)}%` : "0%"}
+                    </div>
+                    <p className="text-[12px] font-medium text-white/40 leading-relaxed max-w-[200px]">Successful synchronization across your today's trajectory.</p>
 
-                    {/* Proactive Core: AI Pattern Logic */}
-                    <section className="p-8 bg-gradient-to-br from-aura-charcoal to-[#1e293b] text-white rounded-[40px] shadow-2xl shadow-aura-charcoal/20 relative overflow-hidden group border border-white/10">
-                        <div className="absolute -top-10 -right-10 w-40 h-40 bg-aura-indigo/20 rounded-full blur-3xl animate-pulse" />
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
-                                <Sparkles size={16} className="text-aura-indigo" />
-                            </div>
-                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Core Instincts</h3>
-                        </div>
-                        <p className="text-base font-medium leading-relaxed italic opacity-90">
-                            "You've been remarkably consistent with your 'Life Milestone' goal this week. I've prepared a summary of what's next."
-                        </p>
-                        <button className="mt-8 py-3 w-full bg-white text-aura-charcoal rounded-2xl text-[13px] font-bold hover:bg-aura-indigo hover:text-white transition-all shadow-lg active:scale-95">
-                            Reveal Trajectory
-                        </button>
-                    </section>
-
-                    {/* Neural Vault: Memory Surfaces */}
-                    <section>
-                        <div className="flex items-center justify-between mb-8">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-aura-gray/60 leading-none">Neural Vault</h3>
-                            <Brain size={16} className="text-aura-indigo/40" />
-                        </div>
-                        <div className="grid grid-cols-1 gap-4">
-                            {recentIdeas.map(idea => (
-                                <div key={idea.id} className="p-5 bg-white border border-black/[0.04] rounded-2xl hover:border-aura-indigo/30 transition-all cursor-pointer shadow-sm">
-                                    <p className="text-sm font-bold text-aura-charcoal mb-2">{idea.title}</p>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1 h-1 rounded-full bg-aura-indigo" />
-                                        <span className="text-[10px] text-aura-gray font-black uppercase tracking-widest">Thought Node</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
+                    <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-aura-gold/5 rounded-full blur-[80px] group-hover:bg-aura-gold/10 transition-colors" />
+                    <Globe size={160} className="absolute -right-16 -bottom-16 text-white/5 group-hover:rotate-45 transition-transform duration-1000" />
                 </div>
-            </aside>
+
+                <div className="p-12 rounded-[56px] bg-white border border-black/[0.03] relative overflow-hidden group shadow-xl">
+                    <div className="flex items-center justify-between mb-10">
+                        <Calendar size={16} className="text-aura-gold" />
+                        <Clock size={14} className="text-aura-charcoal/20" />
+                    </div>
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20 mb-4">Next Manifestation</h3>
+                    <div className="text-3xl font-serif italic font-black text-aura-charcoal line-clamp-1 mb-4 leading-tight">
+                        {userData.events[0]?.title || "Temporal Clear."}
+                    </div>
+                    <p className="text-[11px] font-medium text-aura-charcoal/40 leading-relaxed">
+                        Prepare for synchronization at <span className="text-aura-charcoal font-bold">{userData.events[0] ? new Date(userData.events[0].start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'the next opportunity'}</span> on your trajectory.
+                    </p>
+                </div>
+
+                <div className="p-12 rounded-[56px] bg-white border border-black/[0.03] relative overflow-hidden group shadow-xl">
+                    <Activity size={16} className="text-aura-gold mb-10" />
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20 mb-4">Weekly Horizon</h3>
+                    <div className="flex items-center gap-6 mb-4">
+                        <div className="text-6xl font-serif italic font-black tracking-tighter text-aura-charcoal">
+                            {userData.events.length}
+                        </div>
+                        <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ scaleY: 0.5 }}
+                                    animate={{ scaleY: 1 }}
+                                    transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.5, delay: i * 0.1 }}
+                                    className={`w-2 h-10 rounded-full ${i <= (userData.events.length || 0) ? 'bg-aura-gold' : 'bg-black/[0.05]'}`}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <p className="text-[11px] font-medium text-aura-charcoal/40 leading-relaxed">Identified manifestations across your 7-day trajectory. Momentum is stable.</p>
+                </div>
+            </div>
+
+            {/* Immersive Neural Chat Node */}
+            <div className="pt-20">
+                <div className="flex flex-col items-center mb-16 text-center space-y-4">
+                    <div className="w-px h-24 bg-gradient-to-t from-aura-gold via-aura-gold/20 to-transparent" />
+                    <h2 className="text-5xl font-serif italic text-aura-charcoal tracking-tighter">Manifest Intentions.</h2>
+                    <p className="text-aura-charcoal/40 text-lg">Speak to AURA to modify your trajectory.</p>
+                </div>
+                <NeuralChat userData={userData} />
+            </div>
+
+            {/* Ambient System Gradients */}
+            <div className="fixed top-0 right-0 w-[40%] h-[40%] bg-aura-gold/5 rounded-full blur-[160px] pointer-events-none -z-10" />
+            <div className="fixed bottom-0 left-0 w-[30%] h-[30%] bg-aura-charcoal/5 rounded-full blur-[140px] pointer-events-none -z-10" />
         </div>
     );
 }

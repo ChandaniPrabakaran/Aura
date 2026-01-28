@@ -2,169 +2,285 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Circle, Clock, AlertCircle, Plus, Filter, Stars, Sparkles, Target, Zap } from "lucide-react";
+import { CheckCircle2, Plus, Zap, ListTodo, Sparkles, Wand2, Terminal, Search, Trash2, Filter, ArrowUpRight, Clock, Target } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-interface Todo {
-    id: string;
-    title: string;
-    description: string;
-    status: 'pending' | 'in_progress' | 'completed';
-    priority: 'low' | 'medium' | 'high';
-    due_date: string;
+function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
 }
 
-const PriorityBadge = ({ priority }: { priority: string }) => {
-    const colors: any = {
-        low: "text-aura-gray bg-aura-gray/5 border-black/[0.04]",
-        medium: "text-aura-indigo bg-aura-indigo/5 border-aura-indigo/10",
-        high: "text-aura-emerald bg-aura-emerald/5 border-aura-emerald/10",
-    };
-    return (
-        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border ${colors[priority]}`}>
-            {priority}
-        </span>
-    );
-};
-
 export default function TasksPage() {
-    const [todos, setTodos] = useState<Todo[]>([]);
+    const [todos, setTodos] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
+    const [isCreating, setIsCreating] = useState(false);
+    const [newTodo, setNewTodo] = useState({ title: "", description: "", priority: "medium" });
+
     const supabase = createClient();
 
     useEffect(() => {
+        async function fetchTodos() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data } = await supabase.from('todos').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+            if (data) setTodos(data);
+            setIsLoading(false);
+        }
         fetchTodos();
-
-        const channel = supabase
-            .channel('tasks-sync')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, () => fetchTodos())
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
     }, []);
 
-    async function fetchTodos() {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data, error } = await supabase
-            .from('todos')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('due_date', { ascending: true });
-
-        if (data) setTodos(data);
-        setIsLoading(false);
-    }
-
-    async function toggleStatus(id: string, currentStatus: string) {
-        const nextStatus = currentStatus === 'completed' ? 'pending' : 'completed';
-        const { error } = await supabase
-            .from('todos')
-            .update({ status: nextStatus })
-            .eq('id', id);
-
+    async function toggleTodo(id: string, currentStatus: string) {
+        const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+        const { error } = await supabase.from('todos').update({ status: newStatus }).eq('id', id);
         if (!error) {
-            setTodos(prev => prev.map(t => t.id === id ? { ...t, status: nextStatus as any } : t));
+            setTodos(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
         }
     }
 
+    async function handleAddTodo(e: React.FormEvent) {
+        e.preventDefault();
+        if (!newTodo.title.trim()) return;
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase.from('todos').insert({
+            user_id: user.id,
+            title: newTodo.title.trim(),
+            description: newTodo.description.trim(),
+            priority: newTodo.priority,
+            status: 'pending'
+        }).select().single();
+
+        if (!error && data) {
+            setTodos([data, ...todos]);
+            setNewTodo({ title: "", description: "", priority: "medium" });
+            setIsCreating(false);
+        }
+    }
+
+    async function deleteTodo(id: string) {
+        const { error } = await supabase.from('todos').delete().eq('id', id);
+        if (!error) {
+            setTodos(prev => prev.filter(t => t.id !== id));
+        }
+    }
+
+    const filteredTodos = todos.filter(t => {
+        if (filter === 'pending') return t.status === 'pending';
+        if (filter === 'completed') return t.status === 'completed';
+        return true;
+    });
+
     return (
-        <div className="max-w-[1200px] mx-auto py-24 px-8 flex flex-col min-h-full">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-12 mb-20 relative">
-                <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-6">
-                        <Target className="text-aura-indigo" size={22} />
-                        <span className="text-[11px] font-black uppercase tracking-[.4em] text-aura-gray/40">Execution Manifest</span>
+        <div className="flex-1 flex flex-col space-y-16 py-12">
+
+            {/* Immersive Cinematic Header */}
+            <header className="relative flex flex-col md:flex-row md:items-end justify-between gap-12 px-2">
+                <div className="space-y-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center shadow-lg">
+                            <Zap size={22} className="text-aura-gold fill-aura-gold/20" />
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Operational Protocol</span>
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-aura-gold animate-pulse" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-aura-gold/60">Live Manifest Stream</span>
+                            </div>
+                        </div>
                     </div>
-                    <h1 className="text-5xl md:text-8xl font-black font-display tracking-tighter text-aura-charcoal mb-4 uppercase">COMMANDS.</h1>
-                    <p className="text-aura-gray text-xl font-medium max-w-lg">
-                        You have <span className="text-aura-indigo font-black">{todos.filter(t => t.status !== 'completed').length} active directives</span> awaiting synchronization.
-                    </p>
+
+                    <h1 className="text-8xl font-serif italic tracking-tighter text-aura-charcoal leading-[0.85]">
+                        Commands<span className="text-aura-gold">.</span>
+                    </h1>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-6 relative z-10">
-                    <button className="h-20 px-10 bg-white border border-black/[0.04] rounded-[32px] flex items-center gap-4 text-aura-gray hover:text-aura-indigo hover:shadow-lg hover:shadow-aura-indigo/5 transition-all font-bold">
-                        <Filter size={20} className="text-aura-indigo" />
-                        <span className="text-[11px] uppercase tracking-widest leading-none">Filter Protocol</span>
+                <div className="flex flex-col items-end gap-6">
+                    <button
+                        onClick={() => setIsCreating(true)}
+                        className="px-10 py-5 rounded-[24px] bg-aura-charcoal text-[#FAF9F6] font-black text-[13px] uppercase tracking-[0.2em] shadow-2xl hover:scale-105 transition-all flex items-center gap-3 group"
+                    >
+                        <Plus size={18} className="group-hover:rotate-90 transition-transform" />
+                        New Directive
                     </button>
-                    <button className="h-20 px-12 bg-aura-charcoal text-white rounded-[32px] flex items-center gap-4 font-black uppercase text-xs tracking-[.25em] hover:bg-aura-indigo transition-all shadow-2xl active:scale-95 group">
-                        <Plus size={22} className="group-hover:rotate-90 transition-transform duration-500" />
-                        Add Directive
-                    </button>
+                    <div className="flex gap-2 p-1.5 bg-white border border-black/[0.05] rounded-[20px] shadow-sm">
+                        {['all', 'pending', 'completed'].map((f: any) => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                className={cn(
+                                    "px-6 py-2 rounded-[14px] text-[10px] font-black uppercase tracking-widest transition-all",
+                                    filter === f ? "bg-aura-charcoal text-white shadow-xl" : "text-aura-charcoal/30 hover:text-aura-charcoal"
+                                )}
+                            >
+                                {f}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </header>
+
+            {/* Quick Stats Block */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-2">
+                <div className="p-10 rounded-[48px] bg-white border border-black/[0.03] shadow-sm flex flex-col justify-between group">
+                    <ListTodo size={16} className="text-aura-gold mb-8 opacity-20" />
+                    <div>
+                        <div className="text-6xl font-serif italic font-black text-aura-charcoal tracking-tighter">{todos.filter(t => t.status === 'pending').length}</div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Unfulfilled Nodes</span>
+                    </div>
+                </div>
+                <div className="p-10 rounded-[48px] bg-white border border-black/[0.03] shadow-sm flex flex-col justify-between group">
+                    <CheckCircle2 size={16} className="text-aura-gold mb-8 opacity-20" />
+                    <div>
+                        <div className="text-6xl font-serif italic font-black text-aura-charcoal tracking-tighter">{todos.filter(t => t.status === 'completed').length}</div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Manifested Reality</span>
+                    </div>
+                </div>
+                <div className="p-10 rounded-[48px] bg-aura-gold text-white shadow-2xl flex flex-col justify-between group relative overflow-hidden">
+                    <Target size={16} className="text-white mb-8 opacity-40" />
+                    <div className="relative z-10">
+                        <div className="text-6xl font-serif italic font-black text-white tracking-tighter">
+                            {todos.length > 0 ? Math.round((todos.filter(t => t.status === 'completed').length / todos.length) * 100) : 0}%
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Success Index</span>
+                    </div>
+                    <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
                 </div>
             </div>
 
-            <div className="space-y-6 flex-1">
-                {isLoading ? (
-                    <div className="flex flex-col items-center justify-center py-40 gap-6">
-                        <div className="w-12 h-12 border-4 border-aura-indigo/20 border-t-aura-indigo rounded-full animate-spin" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-aura-indigo animate-pulse">Syncing Ops Stream</span>
-                    </div>
-                ) : (
+            {/* Action Stream: High-Fidelity List */}
+            <section className="px-2 pb-40">
+                <div className="space-y-4">
                     <AnimatePresence mode="popLayout">
-                        {todos.map((todo, i) => (
+                        {isCreating && (
                             <motion.div
-                                key={todo.id}
+                                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                                className="p-10 rounded-[40px] bg-white border-2 border-aura-gold/20 shadow-2xl mb-12"
+                            >
+                                <form onSubmit={handleAddTodo} className="space-y-8">
+                                    <div className="space-y-2">
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            placeholder="Direct Intent Title..."
+                                            value={newTodo.title}
+                                            onChange={(e) => setNewTodo({ ...newTodo, title: e.target.value })}
+                                            className="w-full text-4xl font-serif italic font-black bg-transparent border-none focus:outline-none placeholder:text-black/5 text-aura-charcoal"
+                                        />
+                                        <textarea
+                                            placeholder="Detailed scope of manifestation..."
+                                            value={newTodo.description}
+                                            onChange={(e) => setNewTodo({ ...newTodo, description: e.target.value })}
+                                            className="w-full text-lg font-medium bg-transparent border-none focus:outline-none placeholder:text-black/5 text-aura-charcoal/60 min-h-[100px] resize-none"
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex gap-4">
+                                            {['low', 'medium', 'high'].map(p => (
+                                                <button
+                                                    key={p}
+                                                    type="button"
+                                                    onClick={() => setNewTodo({ ...newTodo, priority: p })}
+                                                    className={cn(
+                                                        "px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] transition-all",
+                                                        newTodo.priority === p ? "bg-aura-gold text-white" : "bg-black/[0.03] text-aura-charcoal/30 hover:text-aura-charcoal"
+                                                    )}
+                                                >
+                                                    {p} Priority
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="flex gap-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCreating(false)}
+                                                className="px-8 py-3 text-[11px] font-black uppercase tracking-widest text-aura-charcoal/30 hover:text-aura-charcoal"
+                                            >
+                                                Abort
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-10 py-3 rounded-2xl bg-aura-charcoal text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all"
+                                            >
+                                                Initialize
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        )}
+
+                        {filteredTodos.map((todo) => (
+                            <motion.div
                                 layout
-                                initial={{ opacity: 0, scale: 0.98, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                                className={`group p-10 rounded-[56px] border transition-all relative overflow-hidden flex items-center gap-10 ${todo.status === 'completed'
-                                    ? 'bg-aura-surface/50 border-black/[0.02] opacity-50'
-                                    : 'bg-white border-black/[0.04] shadow-sm hover:shadow-2xl hover:border-aura-indigo/10'
-                                    }`}
+                                key={todo.id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                whileHover={{ scale: 1.01 }}
+                                className={cn(
+                                    "p-8 rounded-[36px] bg-white border border-black/[0.03] shadow-sm hover:shadow-xl transition-all group flex items-start gap-8 relative overflow-hidden",
+                                    todo.status === 'completed' && "opacity-60 grayscale-[0.8]"
+                                )}
                             >
                                 <button
-                                    onClick={() => toggleStatus(todo.id, todo.status)}
-                                    className={`w-16 h-16 rounded-[28px] shrink-0 flex items-center justify-center transition-all duration-700 transform ${todo.status === 'completed'
-                                        ? 'bg-aura-indigo text-white rotate-[360deg]'
-                                        : 'bg-aura-surface border border-black/[0.05] text-aura-gray/20 hover:text-aura-indigo hover:border-aura-indigo hover:scale-110'
-                                        }`}
+                                    onClick={() => toggleTodo(todo.id, todo.status)}
+                                    className={cn(
+                                        "w-12 h-12 rounded-2xl border-2 flex items-center justify-center transition-all mt-1",
+                                        todo.status === 'completed'
+                                            ? "bg-aura-charcoal border-aura-charcoal text-white"
+                                            : "border-black/[0.05] hover:border-aura-gold/50 group-hover:scale-110"
+                                    )}
                                 >
-                                    {todo.status === 'completed' ? <CheckCircle2 size={30} /> : <Circle size={30} />}
+                                    {todo.status === 'completed' ? <CheckCircle2 size={24} /> : <div className="w-2 h-2 rounded-full bg-aura-gold opacity-0 group-hover:opacity-100 animate-pulse" />}
                                 </button>
 
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex flex-wrap items-center gap-6 mb-3">
-                                        <h3 className={`text-2xl font-black tracking-tighter text-aura-charcoal ${todo.status === 'completed' ? 'line-through decoration-aura-indigo/40' : ''}`}>
+                                <div className="flex-1 space-y-2">
+                                    <div className="flex items-center gap-4">
+                                        <h3 className={cn(
+                                            "text-2xl font-serif italic font-black text-aura-charcoal tracking-tight",
+                                            todo.status === 'completed' && "line-through opacity-40"
+                                        )}>
                                             {todo.title}
                                         </h3>
-                                        <PriorityBadge priority={todo.priority} />
+                                        {todo.priority === 'high' && (
+                                            <span className="px-3 py-1 bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-[0.3em] rounded-full">Vital Focus</span>
+                                        )}
                                     </div>
-                                    {todo.description && (
-                                        <p className="text-aura-gray text-base font-medium max-w-2xl line-clamp-1">{todo.description}</p>
-                                    )}
+                                    <p className="text-sm font-medium text-aura-charcoal/40 leading-relaxed max-w-2xl">
+                                        {todo.description || "No tactical details specified for this directive."}
+                                    </p>
                                 </div>
 
-                                <div className="hidden lg:flex flex-col items-end gap-3 text-right shrink-0">
-                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-aura-gray/40">
-                                        <Clock size={16} className="text-aura-indigo/60" />
-                                        {todo.due_date ? new Date(todo.due_date).toLocaleDateString() : 'Continuous'}
-                                    </div>
-                                    {todo.priority === 'high' && !todo.status.includes('completed') && (
-                                        <div className="flex items-center gap-2 text-aura-emerald text-[9px] font-black uppercase tracking-[0.3em] bg-aura-emerald/5 px-4 py-1.5 rounded-full shadow-sm animate-pulse">
-                                            <Zap size={14} className="fill-current" />
-                                            High Intensity
-                                        </div>
-                                    )}
+                                <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={() => deleteTodo(todo.id)}
+                                        className="p-4 rounded-2xl hover:bg-red-50 text-red-400 transition-colors"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
                                 </div>
+
+                                {/* Decorative kinetic element */}
+                                {todo.status === 'pending' && (
+                                    <div className="absolute right-0 top-0 p-6 opacity-0 group-hover:opacity-10 transition-opacity">
+                                        <Zap size={100} className="text-aura-gold -rotate-12" />
+                                    </div>
+                                )}
                             </motion.div>
                         ))}
                     </AnimatePresence>
-                )}
+                </div>
+            </section>
 
-                {!isLoading && todos.length === 0 && (
-                    <div className="py-64 text-center border-4 border-dashed border-black/[0.02] rounded-[80px] group">
-                        <CheckCircle2 size={96} className="mx-auto mb-10 text-aura-indigo/20 group-hover:text-aura-indigo transition-colors duration-1000" />
-                        <p className="text-3xl font-black uppercase tracking-[0.5em] text-aura-charcoal opacity-40 leading-none">Horizon Clear</p>
-                        <p className="mt-6 text-sm font-medium text-aura-gray tracking-widest">Awaiting next strategic directive...</p>
-                    </div>
-                )}
-            </div>
+            {/* Ambient Gradients */}
+            <div className="fixed top-0 left-0 w-[30%] h-[30%] bg-aura-gold/5 rounded-full blur-[140px] pointer-events-none -z-10" />
+            <div className="fixed bottom-0 right-0 w-[20%] h-[20%] bg-aura-charcoal/5 rounded-full blur-[100px] pointer-events-none -z-10" />
         </div>
     );
 }

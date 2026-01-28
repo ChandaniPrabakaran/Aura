@@ -32,7 +32,7 @@ export const auraTools = {
             console.error("Create Todo Error:", error);
             throw new Error(`Failed to create command: ${error.message}`);
         }
-        return `Successfully initialized command: ${title}`;
+        return `Got it! I've added "${title}" to your tasks for today. I'll make sure it's on your radar.`;
     },
 
     async listTodos(userId: string, status = 'pending') {
@@ -70,7 +70,7 @@ export const auraTools = {
             console.error("Save Idea Error:", error);
             throw new Error(`Failed to crystalline memory: ${error.message}`);
         }
-        return `Neural signature for "${title}" has been crystallized in The Vault.`;
+        return `Perfect, I've saved "${title}" in your memory vault so we can come back to it whenever you need.`;
     },
 
     // --- GOAL TOOLS ---
@@ -102,7 +102,7 @@ export const auraTools = {
             console.error("Create Goal Error:", error);
             throw new Error(`Failed to establish trajectory: ${error.message}`);
         }
-        return `New Objective set: "${title}" (${finalType}). Trajectory is now active.`;
+        return `That sounds like a great objective! I've set up "${title}" as a ${finalType} goal for you. Let's make it happen.`;
     },
 
     async listGoals(userId: string) {
@@ -118,24 +118,49 @@ export const auraTools = {
 
     async updateGoalProgress(userId: string, goalId: string, progress: number) {
         const supabase = adminClient;
-        const { data, error } = await supabase
+
+        // Try direct ID match first
+        let { data, error } = await supabase
             .from('goals')
             .update({ progress, updated_at: new Date().toISOString() })
             .eq('id', goalId)
             .eq('user_id', userId)
             .select()
-            .single();
-        if (error) throw error;
+            .maybeSingle();
+
+        // If no match (or goalId was a title), try matching by title
+        if (!data) {
+            const { data: byTitle } = await supabase
+                .from('goals')
+                .select('id, title')
+                .eq('user_id', userId)
+                .ilike('title', goalId)
+                .maybeSingle();
+
+            if (byTitle) {
+                const { data: updated, error: err } = await supabase
+                    .from('goals')
+                    .update({ progress, updated_at: new Date().toISOString() })
+                    .eq('id', byTitle.id)
+                    .select()
+                    .single();
+                data = updated;
+                error = err;
+            }
+        }
+
+        if (error || !data) throw new Error("Manifestation not found in the trajectory. Ensure the Objective title is accurate.");
         return `Updated progress for "${data.title}" to ${progress}%!`;
     },
 
-    async updateGoal(userId: string, goalId: string, updates: { title?: string, description?: string, targetDate?: string, type?: string, progress?: number }) {
+    async updateGoal(userId: string, goalId: string, updates: { title?: string, description?: string, targetDate?: string, type?: string, progress?: number, status?: 'active' | 'completed' | 'abandoned' }) {
         const supabase = adminClient;
 
         const payload: any = { updated_at: new Date().toISOString() };
         if (updates.title) payload.title = updates.title;
         if (updates.description) payload.description = updates.description;
         if (updates.progress !== undefined) payload.progress = updates.progress;
+        if (updates.status) payload.status = updates.status;
         if (updates.targetDate) {
             try { payload.target_date = new Date(updates.targetDate).toISOString(); } catch (e) { }
         }
@@ -144,15 +169,37 @@ export const auraTools = {
             payload.type = allowedTypes.includes(updates.type) ? updates.type : 'long_term';
         }
 
-        const { data, error } = await supabase
+        // Try direct ID match
+        let { data, error } = await supabase
             .from('goals')
             .update(payload)
             .eq('id', goalId)
             .eq('user_id', userId)
             .select()
-            .single();
+            .maybeSingle();
 
-        if (error) throw error;
+        // Fallback to title resolution
+        if (!data) {
+            const { data: byTitle } = await supabase
+                .from('goals')
+                .select('id, title')
+                .eq('user_id', userId)
+                .ilike('title', goalId)
+                .maybeSingle();
+
+            if (byTitle) {
+                const { data: updated, error: err } = await supabase
+                    .from('goals')
+                    .update(payload)
+                    .eq('id', byTitle.id)
+                    .select()
+                    .single();
+                data = updated;
+                error = err;
+            }
+        }
+
+        if (error || !data) throw new Error("Manifestation not found. I cannot calibrate an Objective that does not exist in your stream.");
         return `Successfully updated Objective: "${data.title}".`;
     },
 
@@ -161,16 +208,17 @@ export const auraTools = {
         const supabase = adminClient;
 
         try {
-            // Check for local conflicts
+            // Check for robust temporal overlaps
             const { data: conflicts } = await supabase
                 .from('calendar_events')
                 .select('*')
                 .eq('user_id', userId)
-                .gte('start_time', start)
-                .lte('start_time', end);
+                .lt('start_time', end)
+                .gt('end_time', start);
 
             if (conflicts && conflicts.length > 0) {
-                return `Aura Alert: Your timeline already has a manifestation at ${new Date(conflicts[0].start_time).toLocaleTimeString()} ("${conflicts[0].title}"). Should I optimize and find a different slot or overwrite it?`;
+                const conf = conflicts[0];
+                return `Temporal Conflict: Your timeline already has a manifestation titled "${conf.title}" scheduled from ${new Date(conf.start_time).toLocaleTimeString()} to ${new Date(conf.end_time).toLocaleTimeString()}. Please advise if I should reschedule or find an alternative vector.`;
             }
 
             const { error } = await supabase
@@ -184,7 +232,7 @@ export const auraTools = {
                 }]);
 
             if (error) throw error;
-            return `Aura Manifest: Scheduled "${summary}" for ${new Date(start).toLocaleString()}. Your 2026 timeline is synchronized.`;
+            return `All set! I've scheduled "${summary}" for ${new Date(start).toLocaleString()}. I'll keep your timeline updated.`;
         } catch (err: any) {
             return `Signal Logic Failure: ${err.message}`;
         }

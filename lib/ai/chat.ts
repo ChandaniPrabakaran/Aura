@@ -13,7 +13,7 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
             `- Active Goals: ${context.active_goals?.join(', ') || 'None'}\n` +
             `- Pending Tasks: ${context.pending_tasks?.join(', ') || 'None'}\n` +
             `- Recent Ideas: ${context.recent_ideas?.join(', ') || 'None'}\n` +
-            `- Upcoming Events: ${context.upcoming_events?.join(', ') || 'None'}\n`;
+            `- Upcoming Events: ${context.upcoming_events?.map((e: any) => `${e.title} at ${e.time}`).join(', ') || 'None'}\n`;
     }
 
     // 2. Prepare System Prompt with Personality + Memory + Dashboard Context
@@ -36,7 +36,7 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
                 type: 'function',
                 function: {
                     name: 'createTodo',
-                    description: 'Create a new task, todo, or executive command (triggered by "Execute command:")',
+                    description: 'Establish a new Command (daily activity or short-term task) to be tracked today.',
                     parameters: {
                         type: 'object',
                         properties: {
@@ -53,7 +53,7 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
                 type: 'function',
                 function: {
                     name: 'saveIdea',
-                    description: 'Save a new idea, thought, or brainstorm (also known as crystallizing a memory or saving to the vault)',
+                    description: 'Save a key element, key need, or brainstormed discussion as a Memory in the vault for future recall.',
                     parameters: {
                         type: 'object',
                         properties: {
@@ -69,7 +69,7 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
                 type: 'function',
                 function: {
                     name: 'createGoal',
-                    description: 'Set a new long-term goal',
+                    description: 'Establish a new Objective (huge activity or long-term goal) to accomplish over time.',
                     parameters: {
                         type: 'object',
                         properties: {
@@ -105,11 +105,11 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
                 type: 'function',
                 function: {
                     name: 'updateGoal',
-                    description: 'Update any attribute of an existing goal (title, description, date, type)',
+                    description: 'Update any attribute of an existing goal (title, description, date, type, status, or progress)',
                     parameters: {
                         type: 'object',
                         properties: {
-                            goalId: { type: 'string' },
+                            goalId: { type: 'string', description: 'The ID or the exact Title of the goal to update' },
                             updates: {
                                 type: 'object',
                                 properties: {
@@ -117,7 +117,8 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
                                     description: { type: 'string' },
                                     targetDate: { type: 'string' },
                                     type: { type: 'string', enum: ['daily', 'weekly', 'monthly', 'long_term'] },
-                                    progress: { type: 'number' }
+                                    progress: { type: 'number' },
+                                    status: { type: 'string', enum: ['active', 'completed', 'abandoned'] }
                                 }
                             }
                         },
