@@ -27,8 +27,8 @@ export default function LandingPage() {
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-3"
         >
-          <div className="w-10 h-10 rounded-xl bg-aura-charcoal shadow-2xl flex items-center justify-center">
-            <Sparkles className="text-aura-gold" size={20} />
+          <div className="w-10 h-10 rounded-xl bg-aura-charcoal shadow-2xl overflow-hidden">
+            <img src="/aura-logo.png" alt="Aura Logo" className="w-full h-full object-cover" />
           </div>
           <span className="text-2xl font-serif italic tracking-tighter text-aura-charcoal">Aura.</span>
         </motion.div>

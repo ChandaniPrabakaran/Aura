@@ -78,42 +78,42 @@ export default function TasksPage() {
         <div className="flex-1 flex flex-col space-y-16 py-12">
 
             {/* Immersive Cinematic Header */}
-            <header className="relative flex flex-col md:flex-row md:items-end justify-between gap-12 px-2">
-                <div className="space-y-6">
+            <header className="relative flex flex-col md:flex-row md:items-end justify-between gap-8 px-2">
+                <div className="space-y-4 md:space-y-6">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center shadow-lg">
-                            <Zap size={22} className="text-aura-gold fill-aura-gold/20" />
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center shadow-lg">
+                            <Zap size={20} className="text-aura-gold fill-aura-gold/10" />
                         </div>
-                        <div className="space-y-1">
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Operational Protocol</span>
-                            <div className="flex items-center gap-2">
+                        <div className="space-y-0.5 md:space-y-1">
+                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-aura-charcoal/20">Protocol</span>
+                            <div className="flex items-center gap-1.5 md:gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-aura-gold animate-pulse" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-aura-gold/60">Live Manifest Stream</span>
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-aura-gold/60">Live Stream</span>
                             </div>
                         </div>
                     </div>
 
-                    <h1 className="text-8xl font-serif italic tracking-tighter text-aura-charcoal leading-[0.85]">
+                    <h1 className="text-5xl md:text-8xl font-serif italic tracking-tighter text-aura-charcoal leading-[0.85]">
                         Commands<span className="text-aura-gold">.</span>
                     </h1>
                 </div>
 
-                <div className="flex flex-col items-end gap-6">
+                <div className="flex flex-col md:items-end gap-4 md:gap-6">
                     <button
                         onClick={() => setIsCreating(true)}
-                        className="px-10 py-5 rounded-[24px] bg-aura-charcoal text-[#FAF9F6] font-black text-[13px] uppercase tracking-[0.2em] shadow-2xl hover:scale-105 transition-all flex items-center gap-3 group"
+                        className="px-8 md:px-10 py-4 md:py-5 rounded-2xl md:rounded-[24px] bg-aura-charcoal text-[#FAF9F6] font-black text-[12px] md:text-[13px] uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-3 group"
                     >
                         <Plus size={18} className="group-hover:rotate-90 transition-transform" />
                         New Directive
                     </button>
-                    <div className="flex gap-2 p-1.5 bg-white border border-black/[0.05] rounded-[20px] shadow-sm">
+                    <div className="flex gap-1.5 p-1 bg-white border border-black/[0.05] rounded-[18px] md:rounded-[20px] shadow-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
                         {['all', 'pending', 'completed'].map((f: any) => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
                                 className={cn(
-                                    "px-6 py-2 rounded-[14px] text-[10px] font-black uppercase tracking-widest transition-all",
-                                    filter === f ? "bg-aura-charcoal text-white shadow-xl" : "text-aura-charcoal/30 hover:text-aura-charcoal"
+                                    "px-4 md:px-6 py-2 rounded-[12px] md:rounded-[14px] text-[9px] font-black uppercase tracking-widest transition-all",
+                                    filter === f ? "bg-aura-charcoal text-white shadow-lg" : "text-aura-charcoal/30 hover:text-aura-charcoal"
                                 )}
                             >
                                 {f}
@@ -124,22 +124,22 @@ export default function TasksPage() {
             </header>
 
             {/* Quick Stats Block */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-2">
-                <div className="p-10 rounded-[48px] bg-white border border-black/[0.03] shadow-sm flex flex-col justify-between group">
-                    <ListTodo size={16} className="text-aura-gold mb-8 opacity-20" />
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8 px-2">
+                <div className="p-6 md:p-10 rounded-[32px] md:rounded-[48px] bg-white border border-black/[0.03] shadow-sm flex flex-col justify-between group">
+                    <ListTodo size={14} className="text-aura-gold mb-6 md:mb-8 opacity-20" />
                     <div>
-                        <div className="text-6xl font-serif italic font-black text-aura-charcoal tracking-tighter">{todos.filter(t => t.status === 'pending').length}</div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Unfulfilled Nodes</span>
+                        <div className="text-4xl md:text-6xl font-serif italic font-black text-aura-charcoal tracking-tighter tabular-nums">{todos.filter(t => t.status === 'pending').length}</div>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-aura-charcoal/20">Pending</span>
                     </div>
                 </div>
-                <div className="p-10 rounded-[48px] bg-white border border-black/[0.03] shadow-sm flex flex-col justify-between group">
-                    <CheckCircle2 size={16} className="text-aura-gold mb-8 opacity-20" />
+                <div className="p-6 md:p-10 rounded-[32px] md:rounded-[48px] bg-white border border-black/[0.03] shadow-sm flex flex-col justify-between group">
+                    <CheckCircle2 size={14} className="text-aura-gold mb-6 md:mb-8 opacity-20" />
                     <div>
-                        <div className="text-6xl font-serif italic font-black text-aura-charcoal tracking-tighter">{todos.filter(t => t.status === 'completed').length}</div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Manifested Reality</span>
+                        <div className="text-4xl md:text-6xl font-serif italic font-black text-aura-charcoal tracking-tighter tabular-nums">{todos.filter(t => t.status === 'completed').length}</div>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-aura-charcoal/20">Done</span>
                     </div>
                 </div>
-                <div className="p-10 rounded-[48px] bg-aura-gold text-white shadow-2xl flex flex-col justify-between group relative overflow-hidden">
+                <div className="hidden lg:flex p-10 rounded-[48px] bg-aura-gold text-white shadow-2xl flex-col justify-between group relative overflow-hidden">
                     <Target size={16} className="text-white mb-8 opacity-40" />
                     <div className="relative z-10">
                         <div className="text-6xl font-serif italic font-black text-white tracking-tighter">

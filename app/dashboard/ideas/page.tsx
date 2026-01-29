@@ -64,57 +64,56 @@ export default function IdeasPage() {
         <div className="flex-1 flex flex-col space-y-20 py-12 pb-40 relative">
 
             {/* Immersive Cinematic Header */}
-            <header className="relative flex flex-col md:flex-row md:items-end justify-between gap-12 px-2">
-                <div className="space-y-6">
+            <header className="relative flex flex-col md:flex-row md:items-end justify-between gap-8 px-2">
+                <div className="space-y-4 md:space-y-6">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center shadow-lg">
-                            <Brain size={22} className="text-aura-gold fill-aura-gold/10" />
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center shadow-lg">
+                            <Brain size={20} className="text-aura-gold fill-aura-gold/10" />
                         </div>
-                        <div className="space-y-1">
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Memory Vault</span>
-                            <div className="flex items-center gap-2">
+                        <div className="space-y-0.5 md:space-y-1">
+                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-aura-charcoal/20">Memory Vault</span>
+                            <div className="flex items-center gap-1.5 md:gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-aura-gold animate-pulse" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-aura-gold/60">Crystalline Archive</span>
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-aura-gold/60">Crystalline Archive</span>
                             </div>
                         </div>
                     </div>
 
-                    <h1 className="text-8xl font-serif italic tracking-tighter text-aura-charcoal leading-[0.85]">
+                    <h1 className="text-5xl md:text-8xl font-serif italic tracking-tighter text-aura-charcoal leading-[0.85]">
                         The Vault<span className="text-aura-gold">.</span>
                     </h1>
                 </div>
 
                 <button
                     onClick={() => setIsCreating(true)}
-                    className="px-10 py-5 rounded-[24px] bg-aura-charcoal text-[#FAF9F6] font-black text-[13px] uppercase tracking-[0.2em] shadow-2xl hover:scale-105 transition-all flex items-center gap-3 group"
+                    className="px-8 md:px-10 py-4 md:py-5 rounded-2xl md:rounded-[24px] bg-aura-charcoal text-[#FAF9F6] font-black text-[12px] md:text-[13px] uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-3 group"
                 >
                     <Plus size={18} className="group-hover:rotate-90 transition-transform" />
-                    Seed New Memory
+                    Seed Memory
                 </button>
             </header>
 
             {/* Vault Metrics Block */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-2">
-                <div className="p-10 rounded-[48px] bg-white border border-black/[0.03] shadow-sm flex flex-col justify-between group">
-                    <Archive size={16} className="text-aura-gold mb-8 opacity-20" />
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8 px-2">
+                <div className="p-6 md:p-10 rounded-[32px] md:rounded-[48px] bg-white border border-black/[0.03] shadow-sm flex flex-col justify-between group">
+                    <Archive size={14} className="text-aura-gold mb-6 md:mb-8 opacity-20" />
                     <div>
-                        <div className="text-6xl font-serif italic font-black text-aura-charcoal tracking-tighter">{ideas.length}</div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Stored Impulses</span>
+                        <div className="text-4xl md:text-6xl font-serif italic font-black text-aura-charcoal tracking-tighter tabular-nums">{ideas.length}</div>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-aura-charcoal/20">Impulses</span>
                     </div>
                 </div>
-                <div className="p-10 rounded-[48px] bg-aura-charcoal text-white shadow-2xl flex flex-col justify-between group relative overflow-hidden">
-                    <Shield size={16} className="text-aura-gold mb-8 opacity-40" />
+                <div className="p-6 md:p-10 rounded-[32px] md:rounded-[48px] bg-aura-charcoal text-white shadow-2xl flex flex-col justify-between group relative overflow-hidden">
+                    <Shield size={14} className="text-aura-gold mb-6 md:mb-8 opacity-40" />
                     <div className="relative z-10">
-                        <div className="text-6xl font-serif italic font-black tracking-tighter">Secure</div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Encryption Protocol</span>
+                        <div className="text-3xl md:text-5xl font-serif italic font-black tracking-tighter">Secure</div>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Encryption</span>
                     </div>
-                    <Cpu size={120} className="absolute -right-8 -bottom-8 text-white/5 opacity-50 group-hover:rotate-12 transition-transform duration-1000" />
                 </div>
-                <div className="p-10 rounded-[48px] bg-white border border-black/[0.03] shadow-sm flex flex-col justify-between group">
+                <div className="hidden lg:flex p-10 rounded-[48px] bg-white border border-black/[0.03] shadow-sm flex-col justify-between group">
                     <Sparkles size={16} className="text-aura-gold mb-8 opacity-20" />
                     <div>
-                        <div className="text-6xl font-serif italic font-black text-aura-charcoal tracking-tighter">{ideas.reduce((acc, curr) => acc + (curr.tags?.length || 0), 0)}</div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Identified Engrams</span>
+                        <div className="text-6xl font-serif italic font-black text-aura-charcoal tracking-tighter tabular-nums">{ideas.reduce((acc, curr) => acc + (curr.tags?.length || 0), 0)}</div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal/20">Engrams</span>
                     </div>
                 </div>
             </div>
@@ -187,62 +186,58 @@ export default function IdeasPage() {
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative w-full max-w-2xl bg-white rounded-[64px] shadow-2xl border border-black/[0.03] p-16 overflow-hidden"
+                            className="relative w-full max-w-2xl bg-white rounded-[40px] md:rounded-[64px] shadow-2xl border border-black/[0.03] p-8 md:p-16 overflow-hidden"
                         >
-                            <form onSubmit={handleAddIdea} className="space-y-12">
-                                <div className="space-y-6">
+                            <form onSubmit={handleAddIdea} className="space-y-8 md:space-y-12">
+                                <div className="space-y-4 md:space-y-6">
                                     <div className="flex items-center gap-3 opacity-30">
                                         <Brain size={16} className="text-aura-gold" />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal">Neural Seed Intake</span>
+                                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-aura-charcoal">Neural Seed Intake</span>
                                     </div>
                                     <input
                                         autoFocus
                                         type="text"
-                                        placeholder="Identification of Memory..."
+                                        placeholder="Identification..."
                                         value={newIdea.title}
                                         onChange={(e) => setNewIdea({ ...newIdea, title: e.target.value })}
-                                        className="w-full text-5xl font-serif italic font-black bg-transparent border-none focus:outline-none placeholder:text-black/5 text-aura-charcoal"
+                                        className="w-full text-3xl md:text-5xl font-serif italic font-black bg-transparent border-none focus:outline-none placeholder:text-black/5 text-aura-charcoal"
                                     />
                                     <textarea
-                                        placeholder="Crystalline thoughts and logic stream..."
+                                        placeholder="Crystalline thoughts..."
                                         value={newIdea.content}
                                         onChange={(e) => setNewIdea({ ...newIdea, content: e.target.value })}
-                                        className="w-full text-xl font-medium bg-transparent border-none focus:outline-none placeholder:text-black/5 text-aura-charcoal/60 min-h-[160px] resize-none"
+                                        className="w-full text-lg md:text-xl font-medium bg-transparent border-none focus:outline-none placeholder:text-black/5 text-aura-charcoal/60 min-h-[120px] md:min-h-[160px] resize-none"
                                     />
                                     <div className="relative group">
-                                        <Tag size={16} className="absolute left-0 top-1/2 -translate-y-1/2 text-aura-gold/20" />
+                                        <Tag size={14} className="absolute left-0 top-1/2 -translate-y-1/2 text-aura-gold/20" />
                                         <input
                                             type="text"
-                                            placeholder="Categorical Engrams (comma separated)..."
+                                            placeholder="Engrams (comma separated)..."
                                             value={newIdea.tags}
                                             onChange={(e) => setNewIdea({ ...newIdea, tags: e.target.value })}
-                                            className="w-full pl-8 py-4 text-xs font-black uppercase tracking-widest bg-transparent border-none focus:outline-none placeholder:text-black/5 text-aura-gold/60"
+                                            className="w-full pl-6 py-4 text-[10px] font-black uppercase tracking-widest bg-transparent border-none focus:outline-none placeholder:text-black/5 text-aura-gold/60"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="flex gap-6 justify-end items-center">
+                                <div className="flex gap-4 md:gap-6 justify-end items-center">
                                     <button
                                         type="button"
                                         onClick={() => setIsCreating(false)}
-                                        className="px-10 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-aura-charcoal/30 hover:text-aura-charcoal"
+                                        className="px-6 md:px-10 py-4 text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-aura-charcoal/30 hover:text-aura-charcoal"
                                     >
                                         Abort
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-16 py-5 rounded-[24px] bg-aura-charcoal text-white font-black text-[13px] uppercase tracking-[0.2em] shadow-2xl hover:scale-105 transition-all"
+                                        className="px-8 md:px-16 py-4 md:py-5 rounded-2xl md:rounded-[24px] bg-aura-charcoal text-white font-black text-[11px] md:text-[13px] uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all"
                                     >
-                                        Crystalline Memory
+                                        Seal Memory
                                     </button>
                                 </div>
                             </form>
-
-                            {/* Decorative Asset */}
-                            <div className="absolute top-0 right-0 p-12 opacity-5 -translate-y-12 translate-x-12 rotate-12">
-                                <Sparkles size={260} className="text-aura-gold" />
-                            </div>
                         </motion.div>
+
                     </div>
                 )}
             </AnimatePresence>

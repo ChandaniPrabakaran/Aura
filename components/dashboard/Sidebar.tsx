@@ -13,11 +13,12 @@ import {
     ChevronRight,
     Activity,
     Shield,
-    LogOut
+    LogOut,
+    X
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -34,21 +35,38 @@ const workspaceNav = [
     { icon: Target, label: "Objectives", href: "/dashboard/goals" },
 ];
 
-export default function DashboardSidebar() {
+interface SidebarProps {
+    isOpen?: boolean;
+    onClose?: () => void;
+}
+
+export default function DashboardSidebar({ isOpen, onClose }: SidebarProps) {
     const pathname = usePathname();
 
-    return (
-        <aside className="w-[300px] h-screen sticky top-0 bg-[#FAF9F6] border-r border-black/[0.03] flex flex-col py-12 px-8 z-[100] flex-shrink-0">
-
+    const sidebarContent = (
+        <div className="flex flex-col h-full py-12 px-8">
             {/* Branding: Warm Intellectual */}
-            <div className="flex items-center gap-4 mb-20 px-2 group cursor-pointer">
-                <div className="w-10 h-10 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-                    <Sparkles size={20} className="text-aura-gold" />
+            <div className="flex items-center justify-between mb-20 px-2">
+                <div className="flex items-center gap-4 group cursor-pointer">
+                    <div className="relative w-12 h-12 rounded-2xl overflow-hidden bg-aura-charcoal shadow-xl group-hover:scale-110 transition-transform duration-500">
+                        <img
+                            src="/aura-logo.png"
+                            alt="Aura Logo"
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="font-serif text-3xl italic tracking-tighter text-aura-charcoal leading-none">Aura.</span>
+                        <span className="text-[8px] font-black uppercase tracking-[0.4em] text-aura-charcoal/30 mt-1">Intelligence</span>
+                    </div>
                 </div>
-                <div className="flex flex-col">
-                    <span className="font-serif text-3xl italic tracking-tighter text-aura-charcoal leading-none">Aura.</span>
-                    <span className="text-[8px] font-black uppercase tracking-[0.4em] text-aura-charcoal/30 mt-1">Intelligence</span>
-                </div>
+                {/* Close Button Only on Mobile */}
+                <button
+                    onClick={onClose}
+                    className="lg:hidden p-3 rounded-2xl bg-black/[0.03] text-aura-charcoal/40"
+                >
+                    <X size={20} />
+                </button>
             </div>
 
             {/* Navigation Sections */}
@@ -62,6 +80,7 @@ export default function DashboardSidebar() {
                                 <Link
                                     key={item.href}
                                     href={item.href}
+                                    onClick={onClose}
                                     className={cn(
                                         "flex items-center gap-4 px-5 py-3 rounded-2xl text-[14px] font-bold transition-all group relative",
                                         isActive
@@ -87,6 +106,7 @@ export default function DashboardSidebar() {
                                 <Link
                                     key={item.href}
                                     href={item.href}
+                                    onClick={onClose}
                                     className={cn(
                                         "flex items-center gap-4 px-5 py-3 rounded-2xl text-[14px] font-bold transition-all group relative",
                                         isActive
@@ -124,6 +144,41 @@ export default function DashboardSidebar() {
                     Log Out
                 </button>
             </div>
-        </aside>
+        </div>
+    );
+
+    return (
+        <>
+            {/* Desktop Sidebar */}
+            <aside className="hidden lg:flex w-[300px] h-screen sticky top-0 bg-[#FAF9F6] border-r border-black/[0.03] flex-col z-[100] flex-shrink-0">
+                {sidebarContent}
+            </aside>
+
+            {/* Mobile Sidebar (Drawer) */}
+            <AnimatePresence>
+                {isOpen && (
+                    <div className="fixed inset-0 z-[200] lg:hidden">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={onClose}
+                            className="absolute inset-0 bg-aura-charcoal/20 backdrop-blur-sm"
+                        />
+                        {/* Drawer */}
+                        <motion.aside
+                            initial={{ x: "-100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "-100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="absolute left-0 top-0 bottom-0 w-[85%] max-w-[320px] bg-[#FAF9F6] shadow-2xl overflow-y-auto"
+                        >
+                            {sidebarContent}
+                        </motion.aside>
+                    </div>
+                )}
+            </AnimatePresence>
+        </>
     );
 }

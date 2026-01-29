@@ -68,8 +68,8 @@ export default function LoginPage() {
                         transition={{ delay: 0.5 }}
                         className="flex items-center gap-3"
                     >
-                        <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-3xl border border-white/10 flex items-center justify-center shadow-2xl">
-                            <Sparkles className="text-aura-gold" size={24} />
+                        <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-3xl border border-white/10 overflow-hidden shadow-2xl">
+                            <img src="/aura-logo.png" alt="Aura Logo" className="w-full h-full object-cover" />
                         </div>
                         <span className="text-white font-serif italic text-2xl tracking-tighter">Aura Manifest.</span>
                     </motion.div>
