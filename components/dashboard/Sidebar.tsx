@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
     LayoutDashboard,
     Clock,
@@ -19,6 +19,7 @@ import {
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -42,6 +43,14 @@ interface SidebarProps {
 
 export default function DashboardSidebar({ isOpen, onClose }: SidebarProps) {
     const pathname = usePathname();
+    const router = useRouter();
+    const supabase = createClient();
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push('/login');
+        router.refresh();
+    };
 
     const sidebarContent = (
         <div className="flex flex-col h-full py-12 px-8">
@@ -135,9 +144,7 @@ export default function DashboardSidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
 
                 <button
-                    onClick={async () => {
-                        window.location.href = '/login';
-                    }}
+                    onClick={handleLogout}
                     className="w-full mt-6 py-3 px-6 flex items-center gap-3 text-aura-charcoal/40 hover:text-aura-charcoal transition-all text-xs font-black uppercase tracking-widest"
                 >
                     <LogOut size={16} />
