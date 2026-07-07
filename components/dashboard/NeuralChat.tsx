@@ -98,10 +98,18 @@ export default function NeuralChat({ userData, onRefresh }: NeuralChatProps) {
                     context: context
                 })
             });
-            const data = await response.json();
-            setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
 
-            if (data.actionTaken && onRefresh) onRefresh();
+            const data = await response.json();
+
+            // Explicit error handling — avoids blank/invisible message bubbles
+            if (!response.ok || data.error) {
+                const errMsg = data.error || `Error ${response.status}: Could not reach AURA.`;
+                setMessages(prev => [...prev, { role: 'assistant', content: errMsg }]);
+            } else {
+                const reply = data.reply || "I received your message but had nothing to say.";
+                setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+                if (data.actionTaken && onRefresh) onRefresh();
+            }
         } catch (error) {
             setMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Please try again." }]);
         } finally {

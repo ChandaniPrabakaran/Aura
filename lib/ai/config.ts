@@ -1,23 +1,33 @@
 import OpenAI from 'openai';
 
-const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
+const openRouterKey = process.env.OPENROUTER_API_KEY;
+const openAiKey = process.env.OPENAI_API_KEY;
 
-if (!apiKey) {
+if (!openRouterKey && !openAiKey) {
     throw new Error('Missing AI API Key (OPENROUTER_API_KEY or OPENAI_API_KEY)');
 }
 
+// Primary chat client — uses OpenRouter if available, otherwise OpenAI
 export const openai = new OpenAI({
-    apiKey: apiKey,
-    baseURL: process.env.OPENROUTER_API_KEY ? 'https://openrouter.ai/api/v1' : undefined,
-    defaultHeaders: process.env.OPENROUTER_API_KEY ? {
-        "HTTP-Referer": "https://aura-ai.vercel.app", // Optional, for OpenRouter rankings
-        "X-Title": "AURA AI",
+    apiKey: openRouterKey || openAiKey!,
+    baseURL: openRouterKey ? 'https://openrouter.ai/api/v1' : undefined,
+    defaultHeaders: openRouterKey ? {
+        'HTTP-Referer': 'https://aura-intelligence.netlify.app',
+        'X-Title': 'AURA AI',
     } : undefined,
 });
 
+// Separate embedding client — embeddings require OpenAI directly.
+// If only OpenRouter key is present, embeddings are disabled (graceful fallback).
+export const embeddingClient: OpenAI | null = openAiKey
+    ? new OpenAI({ apiKey: openAiKey })
+    : null;
+
 export const AI_CONFIG = {
-    model: process.env.OPENROUTER_API_KEY ? 'google/gemini-2.0-flash-001' : 'gpt-4o',
+    // gemini-2.0-flash has reliable tool-call support on OpenRouter
+    model: openRouterKey ? 'google/gemini-2.0-flash-001' : 'gpt-4o',
     embeddingModel: 'text-embedding-3-small',
+    embeddingsEnabled: !!openAiKey,
     maxTokens: 1000,
     temperature: 0.7,
 };
