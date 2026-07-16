@@ -24,8 +24,12 @@ export const embeddingClient: OpenAI | null = openAiKey
     : null;
 
 export const AI_CONFIG = {
-    // gemini-2.0-flash has reliable tool-call support on OpenRouter
-    model: openRouterKey ? 'google/gemini-2.0-flash-001' : 'gpt-4o',
+    // Primary: google/gemma-4-31b-it:free — verified working with tool calls, completely free
+    // Fallbacks tried in order if primary is rate-limited
+    model: openRouterKey ? 'google/gemma-4-31b-it:free' : 'gpt-4o',
+    fallbackModels: openRouterKey
+        ? ['openai/gpt-oss-20b:free', 'nvidia/nemotron-3-super-120b-a12b:free']
+        : [],
     embeddingModel: 'text-embedding-3-small',
     embeddingsEnabled: !!openAiKey,
     maxTokens: 1000,

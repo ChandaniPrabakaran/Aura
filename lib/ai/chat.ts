@@ -2,6 +2,33 @@ import { openai, AI_CONFIG, AURA_PERSONALITY } from './config';
 import { getAuraMemoryContext, saveMessageWithMemory } from './memory';
 import { auraTools } from './tools';
 
+import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
+
+/**
+ * Calls OpenRouter with automatic fallback to backup models if the primary
+ * is unavailable (rate-limited, deprecated, or out of credits).
+ */
+async function callWithFallback(params: Omit<ChatCompletionCreateParamsNonStreaming, 'model'>) {
+    const modelsToTry = [AI_CONFIG.model, ...AI_CONFIG.fallbackModels];
+
+    for (let i = 0; i < modelsToTry.length; i++) {
+        const model = modelsToTry[i];
+        try {
+            const response = await openai.chat.completions.create({ ...params, model, stream: false });
+            return response;
+        } catch (err: any) {
+            const status = err?.status ?? err?.error?.code;
+            const isRetryable = [404, 402, 429].includes(Number(status));
+            const isLast = i === modelsToTry.length - 1;
+
+            console.warn(`Model "${model}" failed (${status}). ${isLast ? 'No more fallbacks.' : 'Trying next model...'}`);
+
+            if (!isRetryable || isLast) throw err;
+        }
+    }
+    throw new Error('All models exhausted');
+}
+
 export async function chatWithAura(userId: string, userMessage: string, chatHistory: any[] = [], context?: any) {
     // 1. Fetch relevant long-term memories (Ideas + Past Conversations)
     const memoryContext = await getAuraMemoryContext(userId, userMessage);
@@ -27,9 +54,8 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
         { role: 'user', content: userMessage }
     ];
 
-    // 3. Initial Chat Call with Tool Support
-    const response = await openai.chat.completions.create({
-        model: AI_CONFIG.model,
+    // 3. Initial Chat Call with Tool Support (with automatic model fallback)
+    const response = await callWithFallback({
         messages,
         tools: [
             {
@@ -218,8 +244,7 @@ export async function chatWithAura(userId: string, userMessage: string, chatHist
             });
         }
 
-        const secondResponse = await openai.chat.completions.create({
-            model: AI_CONFIG.model,
+        const secondResponse = await callWithFallback({
             messages,
         });
 
